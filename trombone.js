@@ -1,35 +1,20 @@
 (function () {
   "use strict";
 
-  // ---- Music data --------------------------------------------------------
-  // Bb major scale, one octave, with the slide position each note is
-  // conventionally played in (1st position closed, 7th fully extended),
-  // and its diatonic step on the bass-clef staff (0 = bottom line, G2;
-  // each step = one line or space, so a step of 2 = one staff line).
-  // This is the classic beginner scale: Bb on the 2nd line up to Bb in
-  // the space above the staff, no ledger lines needed.
-  var SCALE = [
-    { note: "B♭2", freq: 116.54, position: 1, step: 2 },
-    { note: "C3",      freq: 130.81, position: 6, step: 3 },
-    { note: "D3",      freq: 146.83, position: 4, step: 4 },
-    { note: "E♭3", freq: 155.56, position: 3, step: 5 },
-    { note: "F3",      freq: 174.61, position: 1, step: 6 },
-    { note: "G3",      freq: 196.00, position: 4, step: 7 },
-    { note: "A3",      freq: 220.00, position: 2, step: 8 },
-    { note: "B♭3", freq: 233.08, position: 1, step: 9 }
-  ];
-  var MAX_POSITION = 7;
-
-  // ---- Trombone graphic ---------------------------------------------------
   var NS = "http://www.w3.org/2000/svg";
   function el(tag, attrs) {
     var e = document.createElementNS(NS, tag);
     for (var k in attrs) e.setAttribute(k, attrs[k]);
     return e;
   }
+  function htmlEl(tag, attrs, text) {
+    var e = document.createElement(tag);
+    for (var k in attrs || {}) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
 
-  var tromboneSvg = document.getElementById("trombone-svg");
-
+  // ---- Trombone graphic ---------------------------------------------------
   // A trombone slide, geometrically, is just two long parallel tubes
   // joined by a U-bend at the far end, held in alignment near the
   // player by a pair of cross braces. Its length never changes as you
@@ -90,54 +75,32 @@
   }
 
   var SLIDE_X0 = 120;
-  var SLIDE_Y_TOP = 92;
-  var SLIDE_Y_BOTTOM = 122;
-  var SLIDE_LEN = 160;
-  var SLIDE_TRAVEL = 260; // px between position 1 and position 7
+  var SLIDE_Y_TOP = 42;
+  var SLIDE_Y_BOTTOM = 72;
+  var SLIDE_LEN = 220;
+  var SLIDE_TRAVEL = 280; // px between position 1 and position 7
+  var MAX_POSITION = TrombonePositions.MAX_POSITION;
 
-  var slide = makeSlide(tromboneSvg, {
-    x0: SLIDE_X0, yTop: SLIDE_Y_TOP, yBottom: SLIDE_Y_BOTTOM,
-    len: SLIDE_LEN, travel: SLIDE_TRAVEL, maxPosition: MAX_POSITION
-  });
-
-  // Position ruler underneath, 1..7 -- a fixed scale to check the
-  // slide's travel against.
-  for (var p = 1; p <= MAX_POSITION; p++) {
-    var rulerX = SLIDE_X0 + (p - 1) / (MAX_POSITION - 1) * SLIDE_TRAVEL;
-    tromboneSvg.appendChild(el("line", {
-      x1: rulerX, y1: 150, x2: rulerX, y2: 158, stroke: "var(--brass-dim)", "stroke-width": 1
+  function drawPositionRuler(svg) {
+    for (var p = 1; p <= MAX_POSITION; p++) {
+      var rulerX = SLIDE_X0 + (p - 1) / (MAX_POSITION - 1) * SLIDE_TRAVEL;
+      svg.appendChild(el("line", {
+        x1: rulerX, y1: 100, x2: rulerX, y2: 108, stroke: "var(--brass-dim)", "stroke-width": 1
+      }));
+      var t = el("text", { x: rulerX, y: 122, "text-anchor": "middle", "font-size": 11, fill: "var(--brass-dim)" });
+      t.textContent = p;
+      svg.appendChild(t);
+    }
+    svg.appendChild(el("line", {
+      x1: SLIDE_X0, y1: 104, x2: SLIDE_X0 + SLIDE_TRAVEL, y2: 104,
+      stroke: "var(--brass-dim)", "stroke-width": 1
     }));
-    var t = el("text", { x: rulerX, y: 172, "text-anchor": "middle", "font-size": 11, fill: "var(--brass-dim)" });
-    t.textContent = p;
-    tromboneSvg.appendChild(t);
   }
-  var rulerLine = el("line", {
-    x1: SLIDE_X0, y1: 154, x2: SLIDE_X0 + SLIDE_TRAVEL, y2: 154,
-    stroke: "var(--brass-dim)", "stroke-width": 1
-  });
-  tromboneSvg.appendChild(rulerLine);
-
-  slide.setPosition(1);
 
   // ---- Staff notation ------------------------------------------------------
-  // The order flats appear in a key signature is always B,E,A,D,G,C,F, and
-  // each one is placed a 4th above the previous, alternating with a 5th
-  // below, starting from wherever "B" naturally sits in the given clef --
-  // that's what actually produces the standard zig-zag, so we compute it
-  // instead of hardcoding a flat's position for one specific key.
-  function keySignatureFlatSteps(count, bStep) {
-    var steps = [];
-    var step = bStep;
-    for (var i = 0; i < count; i++) {
-      if (i > 0) step += (i % 2 === 1) ? 3 : -4;
-      steps.push(step);
-    }
-    return steps;
-  }
-
   // Draws a bass-clef staff, its key signature, and a row of notes on it.
   // Kept generic (steps + labels + flat count in, a highlight handle out)
-  // so a future version can take an arbitrary user-supplied tune and key.
+  // so it can be handed any generated tune and key, not just one scale.
   function makeStaff(svg, opts) {
     var left = opts.left;
     var right = opts.right;
@@ -145,10 +108,12 @@
     var stepH = opts.stepH;       // pixels per diatonic step
     var keyFlats = opts.keyFlats || 0;
     var keyFlatBStep = opts.keyFlatBStep; // where "B" naturally sits in this clef
+    var keySharps = opts.keySharps || 0;
+    var keySharpFStep = opts.keySharpFStep; // where "F" naturally sits in this clef
     var firstNoteX = opts.firstNoteX;
     var noteSpacing = opts.noteSpacing;
     var notes = opts.notes;       // [{ note, step }, ...]
-    var noteR = opts.noteR || 7;
+    var noteR = opts.noteR || stepH * 0.64;
 
     function stepToY(step) {
       return bottomY - step * stepH;
@@ -162,20 +127,59 @@
       }));
     }
 
-    // Bass clef, sitting directly on the staff: its two dots straddle the
-    // F line (step 6) and the curl wraps around the D line (step 4) below.
+    // Bass clef. The U+1D122 glyph's own two dots are meant to straddle
+    // the F line (step 6), but where they actually land depends on the
+    // font -- so these constants are measured directly from how the
+    // glyph renders (Apple Symbols, the usual fallback for this
+    // character), not guessed: the dots sit 0.191em apart vertically,
+    // and the lower one sits 0.356em above the baseline. Solving for
+    // the font-size and baseline that put those dots exactly on steps
+    // 5 and 7 (one space below/above the F line) gives:
+    var CLEF_DOT_SPACING_EM = 0.191;
+    var CLEF_LOWER_DOT_OFFSET_EM = 0.356;
+    var clefFontSize = (2 * stepH) / CLEF_DOT_SPACING_EM;
+    var clefBaselineY = stepToY(5) + CLEF_LOWER_DOT_OFFSET_EM * clefFontSize;
     svg.appendChild(el("text", {
-      x: left + 6, y: stepToY(2) + stepH * 0.7,
-      "font-size": stepH * 6.5, fill: "var(--brass)"
+      x: left + 6, y: clefBaselineY,
+      "font-size": clefFontSize, fill: "var(--brass)"
     })).textContent = "𝄢";
 
-    var keyX = left + stepH * 6.5;
-    keySignatureFlatSteps(keyFlats, keyFlatBStep).forEach(function (step, i) {
+    var keyX = left + 6 + clefFontSize * 0.62;
+    var keySymbolCount = keyFlats + keySharps; // a real key has one or the other, never both
+    MusicTheory.keySignatureFlatSteps(keyFlats, keyFlatBStep).forEach(function (step, i) {
       svg.appendChild(el("text", {
         x: keyX + i * stepH * 1.7, y: stepToY(step) + stepH * 0.35,
         "font-size": stepH * 2.4, fill: "var(--brass)"
       })).textContent = "♭";
     });
+    // The ♯ glyph is visually centered on its own middle (unlike ♭,
+    // which hangs from a point near its top), measured at 0.376em
+    // above the baseline to the glyph's vertical center -- so, to land
+    // that center exactly on the target step:
+    var SHARP_CENTER_OFFSET_EM = 0.376;
+    var sharpFontSize = stepH * 2.4;
+    MusicTheory.keySignatureSharpSteps(keySharps, keySharpFStep).forEach(function (step, i) {
+      svg.appendChild(el("text", {
+        x: keyX + i * stepH * 1.7, y: stepToY(step) + SHARP_CENTER_OFFSET_EM * sharpFontSize,
+        "font-size": sharpFontSize, fill: "var(--brass)"
+      })).textContent = "♯";
+    });
+
+    // Busier keys (more flats/sharps) need the notes pushed further
+    // right so a 5-accidental signature doesn't collide with the first
+    // note -- firstNoteX is a minimum, not a fixed position.
+    var keySymbolsEndX = keySymbolCount > 0
+      ? keyX + (keySymbolCount - 1) * stepH * 1.7 + stepH * 2.2
+      : keyX;
+    firstNoteX = Math.max(firstNoteX, keySymbolsEndX);
+
+    // A harmonic/melodic minor's altered degrees (e.g. a raised 7th)
+    // aren't part of the key signature at all -- that only ever carries
+    // the relative major's flats/sharps -- so whenever a note's own
+    // accidental differs from what the signature already implies for
+    // its letter, it needs an explicit accidental mark of its own.
+    var keySig = { flats: keyFlats, sharps: keySharps };
+    var accidentalFontSize = stepH * 2.2;
 
     var noteEls = [];
     var labelEls = [];
@@ -185,11 +189,21 @@
 
       // Ledger lines: draw a short line at every line-position (even step)
       // strictly above the staff, up to and including this note's step.
+      var ledgerHalfWidth = stepH * 1.27;
       for (var ls = 10; ls <= n.step; ls += 2) {
         svg.appendChild(el("line", {
-          x1: x - 14, y1: stepToY(ls), x2: x + 14, y2: stepToY(ls),
+          x1: x - ledgerHalfWidth, y1: stepToY(ls), x2: x + ledgerHalfWidth, y2: stepToY(ls),
           stroke: "var(--brass-dim)", "stroke-width": 1.5
         }));
+      }
+
+      var keySigAccidental = MusicTheory.keySignatureAccidentalForLetter(keySig, n.letter);
+      if (n.accidental !== keySigAccidental) {
+        var symbol = n.accidental === -1 ? "♭" : n.accidental === 1 ? "♯" : "♮";
+        var accY = symbol === "♯" ? y + SHARP_CENTER_OFFSET_EM * accidentalFontSize : y + stepH * 0.35;
+        svg.appendChild(el("text", {
+          x: x - stepH * 1.9, y: accY, "font-size": accidentalFontSize, fill: "var(--brass)"
+        })).textContent = symbol;
       }
 
       var head = el("ellipse", {
@@ -199,7 +213,7 @@
       noteEls.push(head);
 
       var label = el("text", {
-        x: x, y: y + 34, "text-anchor": "middle", class: "staff-label"
+        x: x, y: y + stepH * 3.1, "text-anchor": "middle", "font-size": stepH * 1.18, class: "staff-label"
       });
       label.textContent = n.note;
       svg.appendChild(label);
@@ -214,12 +228,9 @@
     return { highlightNote: highlightNote };
   }
 
-  var staffSvg = document.getElementById("staff-svg");
-  var staff = makeStaff(staffSvg, {
-    left: 60, right: 880, bottomY: 150, stepH: 11,
-    keyFlats: 1, keyFlatBStep: 2, // Bb major: one flat, "B" sits on line 2 in bass clef
-    firstNoteX: 210, noteSpacing: 95, notes: SCALE
-  });
+  function clearSvg(svg) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+  }
 
   // ---- Audio ----------------------------------------------------------------
   var audioCtx = null;
@@ -257,35 +268,223 @@
     osc.stop(now + dur + 0.02);
   }
 
+  // ---- Scale/arpeggio picker ------------------------------------------------
+  // Twelve roots -- no fixed octave. Which octave to start in, and
+  // whether a full 2 octaves is even reachable, is computed per
+  // root/type below: some keys (Db, D, Eb) genuinely can't fit 2 clean
+  // octaves on a trigger-less trombone no matter where you start them.
+  var ROOTS = [
+    { label: "C", letter: "C", accidental: 0 },
+    { label: "D♭", letter: "D", accidental: -1 },
+    { label: "D", letter: "D", accidental: 0 },
+    { label: "E♭", letter: "E", accidental: -1 },
+    { label: "E", letter: "E", accidental: 0 },
+    { label: "F", letter: "F", accidental: 0 },
+    { label: "F♯", letter: "F", accidental: 1 },
+    { label: "G", letter: "G", accidental: 0 },
+    { label: "A♭", letter: "A", accidental: -1 },
+    { label: "A", letter: "A", accidental: 0 },
+    { label: "B♭", letter: "B", accidental: -1 },
+    { label: "B", letter: "B", accidental: 0 }
+  ];
+
+  // Finds the lowest octave whose one-octave scale/arpeggio is fully
+  // playable (clean or approximate), then checks whether a second
+  // octave from that same starting point stays fully playable too --
+  // if not, this key's 2-octave version would need positions that
+  // don't exist on a trigger-less trombone, so it falls back to 1.
+  function chooseTune(letter, accidental, typeKey) {
+    function reachable(note) {
+      return TrombonePositions.positionOptionsForNote(note).length > 0;
+    }
+    for (var startOctave = 0; startOctave <= 5; startOctave++) {
+      var root = { letter: letter, accidental: accidental, octave: startOctave };
+      var oneOctave = MusicTheory.buildScale(root, typeKey, 1);
+      if (oneOctave.every(reachable)) {
+        var twoOctaves = MusicTheory.buildScale(root, typeKey, 2);
+        var octaves = twoOctaves.every(reachable) ? 2 : 1;
+        return { root: root, octaves: octaves };
+      }
+    }
+    throw new Error("No reachable octave found for " + letter + accidental);
+  }
+
+  var TYPES = [
+    { key: "major", label: "Major" },
+    { key: "naturalMinor", label: "Natural Minor" },
+    { key: "harmonicMinor", label: "Harmonic Minor" },
+    { key: "melodicMinor", label: "Melodic Minor" },
+    { key: "majorArpeggio", label: "Major Arpeggio" },
+    { key: "minorArpeggio", label: "Minor Arpeggio" }
+  ];
+
+  // Three instantiations of the same solver, each weighting the rules
+  // differently -- not three different algorithms.
+  var WEIGHT_PRESETS = [
+    {
+      label: "Closest position",
+      note: "prefer the lowest position available",
+      weights: { position: 1, positionChange: 0.1, directionChange: 0 }
+    },
+    {
+      label: "Reduced slide travel",
+      note: "minimize total distance moved",
+      weights: { position: 0.1, positionChange: 1, directionChange: 0, endzone: 0.3 }
+    },
+    {
+      label: "Smoothest direction",
+      note: "minimize slide-direction reversals (Arban-style)",
+      weights: { position: 0.15, positionChange: 0.3, directionChange: 1 }
+    }
+  ];
+
+  var rootSelect = document.getElementById("root-select");
+  var typeSelect = document.getElementById("type-select");
+  ROOTS.forEach(function (r, i) {
+    rootSelect.appendChild(htmlEl("option", { value: i }, r.label));
+  });
+  TYPES.forEach(function (t) {
+    typeSelect.appendChild(htmlEl("option", { value: t.key }, t.label));
+  });
+  rootSelect.value = 10; // Bb, matching the widget's original scale
+  typeSelect.value = "major";
+
+  // One shared staff (rebuilt per scale, sized to however long that
+  // scale turns out to be) plus one trombone per weight preset, each
+  // rendered at a fixed 2x pixel size so it stays legible even as
+  // panels wrap to their own row on narrower screens.
+  var staffSvg = document.getElementById("staff-svg");
+
+  var panelsContainer = document.getElementById("panels");
+  var panels = WEIGHT_PRESETS.map(function (preset) {
+    var wrap = htmlEl("div", { class: "panel" });
+    var label = htmlEl("div", { class: "panel-label" });
+    label.appendChild(htmlEl("h2", {}, preset.label));
+    label.appendChild(htmlEl("div", { class: "panel-note" }, preset.note));
+    wrap.appendChild(label);
+    var tromboneSvg = el("svg", {
+      class: "trombone-svg", viewBox: "0 0 900 150", width: "1800", height: "300"
+    });
+    wrap.appendChild(tromboneSvg);
+    panelsContainer.appendChild(wrap);
+
+    var slide = makeSlide(tromboneSvg, {
+      x0: SLIDE_X0, yTop: SLIDE_Y_TOP, yBottom: SLIDE_Y_BOTTOM,
+      len: SLIDE_LEN, travel: SLIDE_TRAVEL, maxPosition: MAX_POSITION
+    });
+    drawPositionRuler(tromboneSvg);
+    slide.setPosition(1);
+
+    return { preset: preset, slide: slide, positions: [] };
+  });
+
+  // ---- Wiring the picker to the panels ---------------------------------------
+  var currentNotes = [];
+  var staffHandle = null;
+  var staffScroll = document.getElementById("staff-scroll");
+  var layout = { firstNoteX: 0, noteSpacing: 0 };
+
+  // The staff stays put -- no distracting motion right from the start --
+  // until the playing note would reach the middle of the visible area,
+  // at which point it holds the note there, scrolling to keep up.
+  function scrollStaffToNote(i) {
+    var noteX = layout.firstNoteX + i * layout.noteSpacing;
+    var middle = staffScroll.clientWidth / 2;
+    var maxScroll = Math.max(0, staffSvg.width.baseVal.value - staffScroll.clientWidth);
+    staffScroll.scrollLeft = Math.max(0, Math.min(maxScroll, noteX - middle));
+  }
+
+  function render() {
+    var r = ROOTS[Number(rootSelect.value)];
+    var typeKey = typeSelect.value;
+    var tune = chooseTune(r.letter, r.accidental, typeKey);
+    var ascending = MusicTheory.buildScale(tune.root, typeKey, tune.octaves);
+    currentNotes = MusicTheory.ascendingAndDescending(ascending);
+
+    var keySig = MusicTheory.keySignature(tune.root, typeKey);
+    var staffNotes = currentNotes.map(function (n) {
+      return {
+        note: MusicTheory.noteName(n), step: MusicTheory.toBassClefStep(n),
+        letter: n.letter, accidental: n.accidental
+      };
+    });
+
+    // Sized to fit however tall and long *this* tune actually is: two
+    // octaves from a high root reaches well above the staff, and up-and-
+    // down doubles the note count, so neither dimension is fixed.
+    // Scaled to 2/3 overall -- this is just showing obvious scales, more
+    // a mnemonic than something that needs to be fully readable.
+    var STAFF_SCALE = 2 / 3;
+    var stepH = 11 * STAFF_SCALE;
+    var margin = 40 * STAFF_SCALE;
+    var left = 60 * STAFF_SCALE;
+    var rightMargin = 20 * STAFF_SCALE;
+    var maxStep = Math.max.apply(null, staffNotes.map(function (n) { return n.step; }));
+    var bottomY = maxStep * stepH + margin;
+    var staffHeight = bottomY + margin;
+    layout.firstNoteX = 170 * STAFF_SCALE;
+    layout.noteSpacing = 55 * STAFF_SCALE;
+    var staffWidth = layout.firstNoteX + staffNotes.length * layout.noteSpacing + margin;
+    staffSvg.setAttribute("viewBox", "0 0 " + staffWidth + " " + staffHeight);
+    staffSvg.setAttribute("width", staffWidth);
+    staffSvg.setAttribute("height", staffHeight);
+
+    clearSvg(staffSvg);
+    staffHandle = makeStaff(staffSvg, {
+      left: left, right: staffWidth - rightMargin, bottomY: bottomY, stepH: stepH,
+      keyFlats: keySig.flats, keyFlatBStep: 2,
+      keySharps: keySig.sharps, keySharpFStep: 6,
+      firstNoteX: layout.firstNoteX, noteSpacing: layout.noteSpacing, notes: staffNotes
+    });
+    staffScroll.scrollLeft = 0;
+
+    panels.forEach(function (panel) {
+      var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, panel.preset.weights);
+      panel.positions = solved.positions;
+      panel.slide.setPosition(panel.positions[0]);
+    });
+  }
+
+  rootSelect.addEventListener("change", render);
+  typeSelect.addEventListener("change", render);
+  render();
+
   // ---- Playback sequencing ---------------------------------------------------
+  // One shared clock drives all three panels (same pitches, same timing --
+  // only the fingering choice differs), and audio plays once, not 3x.
   var playBtn = document.getElementById("play-btn");
   var tempoSelect = document.getElementById("tempo-select");
   var playing = false;
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-  async function playScale() {
+  async function playAll() {
     if (playing) return;
     playing = true;
     playBtn.disabled = true;
     var noteMs = parseInt(tempoSelect.value, 10);
     var slideMs = Math.round(noteMs * 0.35);
 
-    for (var i = 0; i < SCALE.length; i++) {
-      var n = SCALE[i];
-      slide.setPosition(n.position);
-      staff.highlightNote(i);
+    for (var i = 0; i < currentNotes.length; i++) {
+      panels.forEach(function (panel) {
+        panel.slide.setPosition(panel.positions[i]);
+      });
+      staffHandle.highlightNote(i);
+      scrollStaffToNote(i);
       await sleep(slideMs);
-      playTone(n.freq, noteMs - slideMs);
+      playTone(MusicTheory.frequency(currentNotes[i]), noteMs - slideMs);
       await sleep(noteMs - slideMs);
     }
 
     await sleep(150);
-    staff.highlightNote(-1);
-    slide.setPosition(1);
+    staffScroll.scrollLeft = 0;
+    staffHandle.highlightNote(-1);
+    panels.forEach(function (panel) {
+      panel.slide.setPosition(panel.positions[0]);
+    });
     playing = false;
     playBtn.disabled = false;
   }
 
-  playBtn.addEventListener("click", playScale);
+  playBtn.addEventListener("click", playAll);
 })();

@@ -30,18 +30,66 @@
   }
   .stage {
     width: 100%;
-    max-width: 900px;
+    max-width: 1500px;
     padding: 0 16px;
     box-sizing: border-box;
   }
   svg text {
     font-family: Georgia, 'Times New Roman', serif;
   }
-  .controls {
-    margin: 22px 0 40px;
+  .toolbar {
+    margin: 6px 0 18px;
     display: flex;
     gap: 12px;
     align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .toolbar .divider {
+    width: 1px;
+    height: 24px;
+    background: var(--brass-dim);
+    margin: 0 4px;
+  }
+  .staff-scroll {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 18px;
+  }
+  .panels {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  .panel {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    max-width: 1400px;
+  }
+  .panel-label {
+    flex: 0 0 170px;
+    text-align: right;
+  }
+  .panel-label h2 {
+    color: var(--brass-bright);
+    font-size: 1.1em;
+    margin: 0 0 4px;
+  }
+  .panel-label .panel-note {
+    color: var(--brass-dim);
+    font-size: 0.82em;
+  }
+  .panel .trombone-svg {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .trombone-svg {
+    width: 100%;
+    height: auto;
+    display: block;
   }
   button {
     background: linear-gradient(180deg, var(--brass-bright), var(--brass-dim));
@@ -78,7 +126,6 @@
   }
   .staff-label {
     fill: var(--brass-dim);
-    font-size: 13px;
     transition: fill 0.08s linear;
   }
   .staff-label.active {
@@ -88,22 +135,31 @@
 </head>
 <body>
 
-<h1>Trombone Slide Positions &mdash; B&flat; Major Scale</h1>
+<h1>Trombone Slide Positions</h1>
 
 <div class="stage">
-  <svg id="staff-svg" viewBox="0 0 950 200" width="100%" height="200"></svg>
-  <svg id="trombone-svg" viewBox="0 0 900 220" width="100%" height="220"></svg>
+  <div class="toolbar">
+    <select id="root-select"></select>
+    <select id="type-select"></select>
+    <div class="divider"></div>
+    <button id="play-btn">&#9654; Play</button>
+    <select id="tempo-select">
+      <option value="650">Slow</option>
+      <option value="420" selected>Medium</option>
+      <option value="260">Fast</option>
+    </select>
+  </div>
+
+  <div class="staff-scroll" id="staff-scroll">
+    <svg id="staff-svg"></svg>
+  </div>
+
+  <div class="panels" id="panels"></div>
 </div>
 
-<div class="controls">
-  <button id="play-btn">&#9654; Play the scale</button>
-  <select id="tempo-select">
-    <option value="650">Slow</option>
-    <option value="420" selected>Medium</option>
-    <option value="260">Fast</option>
-  </select>
-</div>
-
+<script src="music-theory.js"></script>
+<script src="trombone-positions.js"></script>
+<script src="solver.js"></script>
 <script src="trombone.js"></script>
 </body>
 </html>

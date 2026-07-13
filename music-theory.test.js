@@ -128,6 +128,91 @@ function names(notes) {
     "D harmonic minor: the key signature says nothing about C, so C# needs a written accidental");
 })();
 
+// ---- accidentalsToDisplay: there's no barline in this notation to
+// reset an accidental each measure, so a written accidental holds for
+// its exact pitch (letter+octave) until something actually changes it
+// again -- however much later that is, and even if the new value
+// happens to match the key signature's own default. Melodic minor's
+// descending 6th/7th are the clearest real case: they're the same
+// letters just raised moments earlier, so a reader needs an explicit
+// mark to see they're back down, even though nothing about the key
+// signature itself changed. ---------------------------------------------
+(function () {
+  var d3 = { letter: "D", accidental: 0, octave: 3 };
+  var notes = MusicTheory.buildMelodicMinorFull(d3, 1);
+  var sig = MusicTheory.keySignature(d3, "melodicMinor");
+  var marks = MusicTheory.accidentalsToDisplay(notes, sig);
+
+  assertEqual(names(notes).join(","), "D3,E3,F3,G3,A3,B3,C♯4,D4,C4,B♭3,A3,G3,F3,E3,D3",
+    "D melodic minor: raised 6th/7th ascending, natural 6th/7th descending");
+
+  // Ascending: ascending B and C# both differ from the 1-flat signature's
+  // defaults (flat B, natural C), so both need a written accidental.
+  assertEqual(marks[5], 0, "D melodic minor: ascending B natural needs a natural sign (signature flats B)");
+  assertEqual(marks[6], 1, "D melodic minor: ascending C# needs a sharp");
+
+  // Descending: C natural and Bb both match the *key signature's* own
+  // defaults exactly -- but each was just shown altered a couple of
+  // notes earlier (as C# and B natural), so each still needs its own
+  // courtesy accidental to cancel that, not silence.
+  assertEqual(marks[8], 0, "D melodic minor: descending C natural still needs a natural sign (cancels the C# just shown)");
+  assertEqual(marks[9], -1, "D melodic minor: descending Bb still needs a flat (cancels the B natural just shown)");
+
+  // Everything else matches whatever was already in effect for that
+  // exact pitch, so nothing further needs drawing.
+  [0, 1, 2, 3, 4, 7, 10, 11, 12, 13, 14].forEach(function (i) {
+    assertEqual(marks[i], null, "D melodic minor note " + i + " (" + notes[i].letter + notes[i].octave +
+      "): matches what's already in effect, no mark needed");
+  });
+})();
+
+// ---- accidentalsToDisplay: a repeated identical pitch (no barline, and
+// nothing intervening to cancel it) only needs its accidental written
+// the first time -- this is what makes D harmonic minor's *second*
+// octave of C# distinct from its first: the very first C# of the whole
+// passage needs the mark, but if the same exact pitch (letter+octave)
+// recurs later with nothing in between to have changed it, it's still
+// in effect and doesn't need re-marking. ---------------------------------
+(function () {
+  var d3 = { letter: "D", accidental: 0, octave: 3 };
+  var notes = MusicTheory.ascendingAndDescending(MusicTheory.buildScale(d3, "harmonicMinor", 2));
+  var sig = MusicTheory.keySignature(d3, "harmonicMinor");
+  var marks = MusicTheory.accidentalsToDisplay(notes, sig);
+
+  var cSharp4Indices = [];
+  notes.forEach(function (n, i) {
+    if (n.letter === "C" && n.octave === 4) cSharp4Indices.push(i);
+  });
+  assertEqual(cSharp4Indices.length, 2, "D harmonic minor x2 octaves: C#4 occurs twice (once ascending, once descending)");
+  assertEqual(marks[cSharp4Indices[0]], 1, "D harmonic minor: C#4's first occurrence needs its sharp written");
+  assertEqual(marks[cSharp4Indices[1]], null, "D harmonic minor: C#4's second occurrence is unchanged since the first, no re-mark needed");
+})();
+
+// ---- Eb harmonic minor: the natural-minor 7th is already a flat (Db),
+// so raising it a semitone lands on D *natural*, not a sharp -- the
+// written accidental needed is a natural sign, not always a sharp. -----
+(function () {
+  var eb3 = { letter: "E", accidental: -1, octave: 3 };
+  var scale = MusicTheory.buildScale(eb3, "harmonicMinor");
+  assertEqual(names(scale).join(","), "E♭3,F3,G♭3,A♭3,B♭3,C♭4,D4,E♭4",
+    "Eb harmonic minor: raised 7th is D natural (cancelling the flat), not D#");
+})();
+
+// ---- Db harmonic minor: a rarer case still -- the key signature
+// itself already flats B, and the scale's own 6th degree needs it
+// flatted a second time (Bbb), a genuine double accidental. ------------
+(function () {
+  var db3 = { letter: "D", accidental: -1, octave: 3 };
+  var scale = MusicTheory.buildScale(db3, "harmonicMinor");
+  var sixthDegree = scale[5];
+  assertEqual(sixthDegree.letter, "B", "Db harmonic minor: 6th degree is letter B");
+  assertEqual(sixthDegree.accidental, -2, "Db harmonic minor: 6th degree is B double-flat (Bbb)");
+
+  var sig = MusicTheory.keySignature(db3, "harmonicMinor");
+  assertEqual(MusicTheory.keySignatureAccidentalForLetter(sig, "B"), -1,
+    "Db harmonic minor: the key signature only flats B once, so Bbb still needs its own written accidental");
+})();
+
 // ---- G major -- a sharp key, to make sure sharp spelling works too. ---
 (function () {
   var g3 = { letter: "G", accidental: 0, octave: 3 };
@@ -166,6 +251,16 @@ function names(notes) {
   var bb2 = { letter: "B", accidental: -1, octave: 2 };
   var arp = MusicTheory.buildScale(bb2, "majorArpeggio");
   assertEqual(names(arp).join(","), "B♭2,D3,F3,B♭3", "Bb major arpeggio: root-3rd-5th-8ve");
+})();
+
+// ---- Classical melodic minor is asymmetric: raised 6th/7th ascending
+// (like major, approaching the octave), but natural minor's un-raised
+// 6th/7th descending -- not just the ascending form played backwards. ---
+(function () {
+  var d3 = { letter: "D", accidental: 0, octave: 3 };
+  var full = MusicTheory.buildMelodicMinorFull(d3);
+  assertEqual(names(full).join(","), "D3,E3,F3,G3,A3,B3,C♯4,D4,C4,B♭3,A3,G3,F3,E3,D3",
+    "D melodic minor: B/C# ascending (raised), Bb/C descending (natural minor's)");
 })();
 
 // ---- Two octaves -- the 1-octave formula repeated and shifted, not a

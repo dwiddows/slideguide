@@ -175,10 +175,14 @@
 
     // A harmonic/melodic minor's altered degrees (e.g. a raised 7th)
     // aren't part of the key signature at all -- that only ever carries
-    // the relative major's flats/sharps -- so whenever a note's own
-    // accidental differs from what the signature already implies for
-    // its letter, it needs an explicit accidental mark of its own.
+    // the relative major's flats/sharps -- so whenever a note returns
+    // to (or departs from) what the signature implies for its pitch, it
+    // needs an explicit accidental of its own. There's no barline here
+    // to reset that per measure, so once shown, an accidental holds for
+    // that exact pitch until something actually changes it again --
+    // computed once up front so each note only needs its own answer.
     var keySig = { flats: keyFlats, sharps: keySharps };
+    var accidentalsToShow = MusicTheory.accidentalsToDisplay(notes, keySig);
     var accidentalFontSize = stepH * 2.2;
 
     var noteEls = [];
@@ -197,12 +201,18 @@
         }));
       }
 
-      var keySigAccidental = MusicTheory.keySignatureAccidentalForLetter(keySig, n.letter);
-      if (n.accidental !== keySigAccidental) {
-        var symbol = n.accidental === -1 ? "♭" : n.accidental === 1 ? "♯" : "♮";
-        var accY = symbol === "♯" ? y + SHARP_CENTER_OFFSET_EM * accidentalFontSize : y + stepH * 0.35;
+      var accidentalToShow = accidentalsToShow[i];
+      if (accidentalToShow !== null) {
+        // Rare, but real: a key whose signature already flats/sharps a
+        // letter can need that same letter raised or lowered by a
+        // further semitone (e.g. Db harmonic minor's 6th degree is Bbb,
+        // a double flat), not just the usual single accidental.
+        var symbol = accidentalToShow === -2 ? "𝄫" : accidentalToShow === -1 ? "♭" :
+          accidentalToShow === 1 ? "♯" : accidentalToShow === 2 ? "𝄪" : "♮";
+        var isSharpish = symbol === "♯" || symbol === "𝄪";
+        var accY = (isSharpish ? y + SHARP_CENTER_OFFSET_EM * accidentalFontSize : y + stepH * 0.35) + stepH * 0.4;
         svg.appendChild(el("text", {
-          x: x - stepH * 1.9, y: accY, "font-size": accidentalFontSize, fill: "var(--brass)"
+          x: x - stepH * 3, y: accY, "font-size": accidentalFontSize, fill: "var(--brass)"
         })).textContent = symbol;
       }
 
@@ -293,16 +303,26 @@
   // octave from that same starting point stays fully playable too --
   // if not, this key's 2-octave version would need positions that
   // don't exist on a trigger-less trombone, so it falls back to 1.
+  // Melodic minor's descent uses different pitches (natural minor's
+  // un-raised 6th/7th) than its ascent, so both need checking here --
+  // otherwise an octave whose ascending form is fine could still crash
+  // the solver on notes that only appear coming back down.
+  function notesToCheck(root, typeKey, octaves) {
+    var notes = MusicTheory.buildScale(root, typeKey, octaves);
+    if (typeKey === "melodicMinor") {
+      notes = notes.concat(MusicTheory.buildScale(root, "naturalMinor", octaves));
+    }
+    return notes;
+  }
+
   function chooseTune(letter, accidental, typeKey) {
     function reachable(note) {
       return TrombonePositions.positionOptionsForNote(note).length > 0;
     }
     for (var startOctave = 0; startOctave <= 5; startOctave++) {
       var root = { letter: letter, accidental: accidental, octave: startOctave };
-      var oneOctave = MusicTheory.buildScale(root, typeKey, 1);
-      if (oneOctave.every(reachable)) {
-        var twoOctaves = MusicTheory.buildScale(root, typeKey, 2);
-        var octaves = twoOctaves.every(reachable) ? 2 : 1;
+      if (notesToCheck(root, typeKey, 1).every(reachable)) {
+        var octaves = notesToCheck(root, typeKey, 2).every(reachable) ? 2 : 1;
         return { root: root, octaves: octaves };
       }
     }
@@ -328,13 +348,13 @@
     },
     {
       label: "Reduced slide travel",
-      note: "minimize total distance moved",
-      weights: { position: 0.1, positionChange: 1, directionChange: 0, endzone: 0.3 }
+      note: "reduce distance moved",
+      weights: { position: 0.15, positionChange: 1, directionChange: 0 }
     },
     {
       label: "Smoothest direction",
-      note: "minimize slide-direction reversals (Arban-style)",
-      weights: { position: 0.15, positionChange: 0.3, directionChange: 1 }
+      note: "also reduce slide-direction reversals (Arban-style)",
+      weights: { position: 0.15, positionExponent: 1.5, positionChange: 0.5, directionChange: 1 }
     }
   ];
 
@@ -355,18 +375,76 @@
   // panels wrap to their own row on narrower screens.
   var staffSvg = document.getElementById("staff-svg");
 
+  // A 4th, user-editable preset alongside the three fixed ones -- its
+  // weights aren't a fixed object like the others, but read live from
+  // its own sliders, so visitors can try their own strategy (including
+  // deliberately bizarre ones) and see the same trombone react to it
+  // in real time. Closed by default (it's the one panel that isn't
+  // already a considered position-choice philosophy), while the three
+  // fixed presets start open since they're the point of the page.
+  var WEIGHT_CONFIGS = [
+    { id: "position", label: "Position", hint: "prefer low position numbers", min: 0, max: 2, step: 0.01, value: 0.15 },
+    { id: "positionExponent", label: "Position exponent", hint: "1 = linear; above 1 makes 5th-7th cost disproportionately more", min: 1, max: 3, step: 0.05, value: 1.5 },
+    { id: "positionChange", label: "Position change", hint: "prefer less total slide travel", min: 0, max: 2, step: 0.01, value: 0.5 },
+    { id: "directionChange", label: "Direction change", hint: "prefer fewer slide reversals", min: 0, max: 2, step: 0.01, value: 1 }
+  ];
+
+  // Builds the slider block and returns both the DOM to insert and the
+  // live inputs, so the caller can read current values and wire up
+  // "changed" handling without another DOM query round-trip.
+  function buildExpertControls() {
+    var container = htmlEl("div", { class: "expert-controls" });
+    var inputs = {};
+    WEIGHT_CONFIGS.forEach(function (cfg) {
+      var label = htmlEl("label");
+      var labelSpan = htmlEl("span", { class: "expert-label" }, cfg.label);
+      labelSpan.appendChild(htmlEl("span", { class: "expert-hint" }, cfg.hint));
+      var input = htmlEl("input", {
+        type: "range", min: cfg.min, max: cfg.max, step: cfg.step, value: cfg.value
+      });
+      var display = htmlEl("span", { class: "expert-value" }, Number(cfg.value).toFixed(2));
+      label.appendChild(labelSpan);
+      label.appendChild(input);
+      label.appendChild(display);
+      container.appendChild(label);
+      inputs[cfg.id] = { input: input, display: display };
+    });
+    return { element: container, inputs: inputs };
+  }
+
+  var expertControls = buildExpertControls();
+  function customWeights() {
+    var weights = {};
+    WEIGHT_CONFIGS.forEach(function (cfg) {
+      weights[cfg.id] = Number(expertControls.inputs[cfg.id].input.value);
+    });
+    return weights;
+  }
+  var CUSTOM_PRESET = {
+    label: "Set Your Own Policy",
+    note: "try your own strategy",
+    isCustom: true,
+    getWeights: customWeights
+  };
+
   var panelsContainer = document.getElementById("panels");
-  var panels = WEIGHT_PRESETS.map(function (preset) {
-    var wrap = htmlEl("div", { class: "panel" });
-    var label = htmlEl("div", { class: "panel-label" });
-    label.appendChild(htmlEl("h2", {}, preset.label));
-    label.appendChild(htmlEl("div", { class: "panel-note" }, preset.note));
-    wrap.appendChild(label);
+  var panels = WEIGHT_PRESETS.concat([CUSTOM_PRESET]).map(function (preset) {
+    var details = htmlEl("details", { class: "panel-details" });
+    if (!preset.isCustom) details.setAttribute("open", "");
+
+    var summary = htmlEl("summary");
+    summary.appendChild(htmlEl("h2", {}, preset.label));
+    summary.appendChild(htmlEl("span", { class: "panel-note" }, preset.note));
+    details.appendChild(summary);
+
+    var body = htmlEl("div", { class: "panel-body" });
+    if (preset.isCustom) body.appendChild(expertControls.element);
     var tromboneSvg = el("svg", {
       class: "trombone-svg", viewBox: "0 0 900 150", width: "1800", height: "300"
     });
-    wrap.appendChild(tromboneSvg);
-    panelsContainer.appendChild(wrap);
+    body.appendChild(tromboneSvg);
+    details.appendChild(body);
+    panelsContainer.appendChild(details);
 
     var slide = makeSlide(tromboneSvg, {
       x0: SLIDE_X0, yTop: SLIDE_Y_TOP, yBottom: SLIDE_Y_BOTTOM,
@@ -398,14 +476,15 @@
     var r = ROOTS[Number(rootSelect.value)];
     var typeKey = typeSelect.value;
     var tune = chooseTune(r.letter, r.accidental, typeKey);
-    var ascending = MusicTheory.buildScale(tune.root, typeKey, tune.octaves);
-    currentNotes = MusicTheory.ascendingAndDescending(ascending);
+    currentNotes = typeKey === "melodicMinor"
+      ? MusicTheory.buildMelodicMinorFull(tune.root, tune.octaves)
+      : MusicTheory.ascendingAndDescending(MusicTheory.buildScale(tune.root, typeKey, tune.octaves));
 
     var keySig = MusicTheory.keySignature(tune.root, typeKey);
     var staffNotes = currentNotes.map(function (n) {
       return {
         note: MusicTheory.noteName(n), step: MusicTheory.toBassClefStep(n),
-        letter: n.letter, accidental: n.accidental
+        letter: n.letter, accidental: n.accidental, octave: n.octave
       };
     });
 
@@ -439,7 +518,8 @@
     staffScroll.scrollLeft = 0;
 
     panels.forEach(function (panel) {
-      var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, panel.preset.weights);
+      var weights = panel.preset.getWeights ? panel.preset.getWeights() : panel.preset.weights;
+      var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, weights);
       panel.positions = solved.positions;
       panel.slide.setPosition(panel.positions[0]);
     });
@@ -449,9 +529,27 @@
   typeSelect.addEventListener("change", render);
   render();
 
+  // ---- Custom-weight sliders --------------------------------------------------
+  // Dragging a slider only needs to re-solve and reposition the one
+  // custom-weight trombone, not rebuild the whole staff -- that keeps it
+  // responsive while dragging, and leaves the staff scroll position alone.
+  var customPanel = panels[panels.length - 1];
+  function updateCustomPanel() {
+    var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, customWeights());
+    customPanel.positions = solved.positions;
+    customPanel.slide.setPosition(customPanel.positions[0]);
+  }
+  WEIGHT_CONFIGS.forEach(function (cfg) {
+    var pair = expertControls.inputs[cfg.id];
+    pair.input.addEventListener("input", function () {
+      pair.display.textContent = Number(pair.input.value).toFixed(2);
+      updateCustomPanel();
+    });
+  });
+
   // ---- Playback sequencing ---------------------------------------------------
   // One shared clock drives all three panels (same pitches, same timing --
-  // only the fingering choice differs), and audio plays once, not 3x.
+  // only the position choice differs), and audio plays once, not 3x.
   var playBtn = document.getElementById("play-btn");
   var tempoSelect = document.getElementById("tempo-select");
   var playing = false;

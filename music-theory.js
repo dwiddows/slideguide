@@ -129,6 +129,18 @@
     return notes.concat(notes.slice(0, -1).reverse());
   }
 
+  // Classical melodic minor is asymmetric: it raises the 6th and 7th
+  // ascending (so it approaches the octave like a major scale), but
+  // descends using natural minor's un-raised 6th and 7th instead of
+  // just mirroring its own ascending form. The two formulas share the
+  // same top note (the octave itself), so the descent is natural
+  // minor's notes reversed with that shared peak dropped.
+  function buildMelodicMinorFull(root, octaves) {
+    var ascending = buildScale(root, "melodicMinor", octaves || 1);
+    var descendingSource = buildScale(root, "naturalMinor", octaves || 1);
+    return ascending.concat(descendingSource.slice(0, -1).reverse());
+  }
+
   // The relative major shares a key signature with its minor (the
   // signature itself never carries harmonic/melodic-minor accidentals --
   // those are written as one-off accidentals in the music). A minor
@@ -169,6 +181,28 @@
     return 0;
   }
 
+  // Which notes in a sequence need an explicit accidental mark drawn,
+  // in real notation order. A given pitch (its letter and octave)
+  // starts out at whatever the key signature implies, and then holds
+  // whatever was last written for it -- there's no barline here to
+  // reset that, so once a note's been shown raised or lowered, it stays
+  // in effect (and needs re-cancelling with its own mark) until
+  // something actually writes a different accidental for that same
+  // pitch, however much later that is. Returns one entry per input
+  // note: the accidental to show, or null if nothing needs drawing.
+  function accidentalsToDisplay(notes, keySig) {
+    var displayed = {};
+    return notes.map(function (n) {
+      var key = n.letter + n.octave;
+      if (!(key in displayed)) {
+        displayed[key] = keySignatureAccidentalForLetter(keySig, n.letter);
+      }
+      var needsMark = n.accidental !== displayed[key];
+      displayed[key] = n.accidental;
+      return needsMark ? n.accidental : null;
+    });
+  }
+
   // The order flats appear in a key signature is always B,E,A,D,G,C,F,
   // each a 4th above the previous alternating with a 5th below,
   // starting from wherever "B" naturally sits in the given clef --
@@ -204,9 +238,11 @@
     transposeNote: transposeNote,
     buildScale: buildScale,
     ascendingAndDescending: ascendingAndDescending,
+    buildMelodicMinorFull: buildMelodicMinorFull,
     relativeMajorOf: relativeMajorOf,
     keySignature: keySignature,
     keySignatureAccidentalForLetter: keySignatureAccidentalForLetter,
+    accidentalsToDisplay: accidentalsToDisplay,
     keySignatureFlatSteps: keySignatureFlatSteps,
     keySignatureSharpSteps: keySignatureSharpSteps,
     frequency: frequency,

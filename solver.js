@@ -1,7 +1,12 @@
 /**
  * Chooses one position per note out of several valid options, trading
- * off (via weights) four things:
- *   - position:        prefer a low position number ("closer to the bell")
+ * off (via weights) three things:
+ *   - position:        prefer a low position number ("closer to the
+ *                       bell"), raised to positionExponent (default 1,
+ *                       i.e. plain linear) before weighting -- an
+ *                       exponent above 1 makes that preference convex,
+ *                       so positions 5-7 cost disproportionately more
+ *                       than 2-4 instead of everything scaling together
  *   - positionChange:  prefer less total slide travel between notes
  *   - directionChange: prefer fewer reversals of slide direction (a
  *                       clean opposite-sign reversal costs a full
@@ -9,15 +14,6 @@
  *                       or -,0,+ -- costs a quarter point, since
  *                       stopping briefly on the way up or down isn't
  *                       really the same problem as doubling back)
- *   - endzone:         prefer not passing up closer alternatives, scaled
- *                       by how many there were -- a note with only one
- *                       reachable position (e.g. low C, only playable in
- *                       6th) pays nothing for being "far out", since
- *                       there was nothing closer to pass up; a note with
- *                       three options pays 2x if it takes the farthest
- *                       one. This is deliberately not just "penalize high
- *                       position numbers": that would wrongly punish
- *                       notes that have no closer choice at all.
  *
  * The latter two can't be decided note-by-note -- a locally cheap
  * choice can force an expensive one later -- so this is a dynamic
@@ -71,9 +67,13 @@
   function solve(items, getOptions, weights) {
     weights = weights || {};
     var wPosition = weights.position || 0;
+    var positionExponent = weights.positionExponent || 1;
     var wPositionChange = weights.positionChange || 0;
     var wDirectionChange = weights.directionChange || 0;
-    var wEndzone = weights.endzone || 0;
+
+    function positionCost(position) {
+      return wPosition * Math.pow(position, positionExponent);
+    }
 
     var optionsPerItem = items.map(function (item, i) {
       var opts = getOptions(item, i);
@@ -83,23 +83,11 @@
       return opts;
     });
 
-    // How many of this note's OTHER options sit closer to home than the
-    // given one -- 0 for a note with a single option (nothing to pass
-    // up), up to (option count - 1) for the farthest of several.
-    function closerOptionsPassedUp(opts, opt) {
-      var count = 0;
-      opts.forEach(function (other) {
-        if (other.position < opt.position - 1e-9) count++;
-      });
-      return count;
-    }
-
     // dp[i] is one state per (position, incomingDirection) pair
     // reachable at note i, each holding its cheapest cost so far and
     // a backpointer to the previous state that achieved it.
     var dp = [optionsPerItem[0].map(function (opt) {
-      var cost = wPosition * opt.position +
-        wEndzone * closerOptionsPassedUp(optionsPerItem[0], opt);
+      var cost = positionCost(opt.position);
       return { position: opt.position, direction: null, approximate: !!opt.approximate, cost: cost, prev: null };
     })];
 
@@ -112,15 +100,13 @@
       // overall for this position" loses exactly that alternative.
       var bestByKey = {};
       optionsPerItem[i].forEach(function (opt) {
-        var endzoneCost = wEndzone * closerOptionsPassedUp(optionsPerItem[i], opt);
         prevStates.forEach(function (prevState) {
           var diff = opt.position - prevState.position;
           var direction = directionOf(diff);
           var cost = prevState.cost +
-            wPosition * opt.position +
+            positionCost(opt.position) +
             wPositionChange * Math.abs(diff) +
-            wDirectionChange * directionTurnCost(prevState.direction, direction) +
-            endzoneCost;
+            wDirectionChange * directionTurnCost(prevState.direction, direction);
           var key = opt.position + "|" + direction;
           if (!(key in bestByKey) || cost < bestByKey[key].cost) {
             bestByKey[key] = {

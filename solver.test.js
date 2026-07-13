@@ -22,11 +22,63 @@ function assertEqual(actual, expected, message) {
     message + " (got " + JSON.stringify(actual) + ", expected " + JSON.stringify(expected) + ")");
 }
 
+// ---- A reference cost implementation, independent of solver.js's own
+// DP, used below to brute-force-verify the DP never misses a cheaper
+// answer. Mirrors solver.js's cost formula exactly (see its comments
+// for why turns work this way). --------------------------------------
+function directionOf(diff) { return diff > 0 ? 1 : diff < 0 ? -1 : 0; }
+function directionTurnCost(prevDirection, direction) {
+  if (prevDirection === null) return 0;
+  if (prevDirection === 0 && direction === 0) return 0;
+  if (prevDirection === 0 || direction === 0) return 0.25;
+  return prevDirection !== direction ? 1 : 0;
+}
+function totalCost(positions, optionsPerNote, weights) {
+  var total = 0, prevDirection = null;
+  var exponent = weights.positionExponent || 1;
+  for (var i = 0; i < positions.length; i++) {
+    total += (weights.position || 0) * Math.pow(positions[i], exponent);
+    if (i > 0) {
+      var diff = positions[i] - positions[i - 1];
+      var direction = directionOf(diff);
+      total += (weights.positionChange || 0) * Math.abs(diff) +
+        (weights.directionChange || 0) * directionTurnCost(prevDirection, direction);
+      prevDirection = direction;
+    }
+  }
+  return total;
+}
+function bruteForceMinCost(optionsPerNote, weights) {
+  var best = Infinity;
+  (function recurse(i, positions) {
+    if (i === optionsPerNote.length) {
+      var cost = totalCost(positions, optionsPerNote, weights);
+      if (cost < best) best = cost;
+      return;
+    }
+    optionsPerNote[i].forEach(function (opt) {
+      positions.push(opt.position);
+      recurse(i + 1, positions);
+      positions.pop();
+    });
+  })(0, []);
+  return best;
+}
+// Options-per-note with everything outside [fromIndex, toIndex] pinned
+// to the DP's own choice -- lets a brute-force check focus on one
+// stretch of a long tune without the combinatorics of the whole thing.
+function optionsWithSegmentFree(notes, solved, fromIndex, toIndex) {
+  return notes.map(function (n, i) {
+    if (i >= fromIndex && i <= toIndex) return TrombonePositions.positionOptionsForNote(n);
+    return [{ position: solved.positions[i] }];
+  });
+}
+
 // ---- Pure "prefer low position" reproduces the traditional Bb major
-// scale fingering exactly -- every choice point in that scale happens
-// to already be the lowest available position, so this is a real
-// end-to-end check that the trombone harmonic model + solver agree
-// with the hand-verified fingering. --------------------------------------
+// scale's position choices exactly -- every choice point in that scale
+// happens to already be the lowest available position, so this is a
+// real end-to-end check that the trombone harmonic model + solver
+// agree with the hand-verified positions. --------------------------------
 (function () {
   var bb2 = { letter: "B", accidental: -1, octave: 2 };
   var scale = MusicTheory.buildScale(bb2, "major");
@@ -35,7 +87,7 @@ function assertEqual(actual, expected, message) {
     { position: 1, positionChange: 0, directionChange: 0 });
 
   assertEqual(result.positions, [1, 6, 4, 3, 1, 4, 2, 1],
-    "Bb major, pure position-preference, matches the traditional fingering");
+    "Bb major, pure position-preference, matches the traditional position sequence");
 })();
 
 // ---- Synthetic case isolating position-preference vs direction-change:
@@ -121,21 +173,32 @@ function assertEqual(actual, expected, message) {
 })();
 
 // ---- A small preference for low positions (weights.position: 0.15,
-// alongside positionChange: 0.3 and directionChange: 1), recovers the
-// actual traditional Arban fingering for two full 2-octave scales,
+// alongside positionChange: 0.5 and directionChange: 1), recovers the
+// actual traditional Arban position choices for two full 2-octave scales,
 // with no approximate positions needed anywhere: F major plays its
 // 6th degree in 4th position, and E major plays its 6th degree in 5th
 // position, both times (ascending and descending) rather than
 // bouncing back to 1st. Too little position preference reverts to the
 // naive 1,2,1 alternation from earlier in this investigation; too much
-// (0.24+, after the DP state-collapse fix below) starts forcing C
+// (0.50+, after the DP state-collapse fix below) starts forcing C
 // major's higher octave back into an unnecessary 1<->2 zigzag instead
 // of continuing smoothly upward -- 0.15 sits safely in the middle of
-// the window [0.04, 0.22] that gets all of this right at once. --------
+// the window [0.08, 0.48] that gets all of this right at once.
+// (positionChange itself was raised from 0.3 to 0.5 separately: 0.3
+// let a big single jump straight to a low position number undercut a
+// real reversal's cost, e.g. Bb melodic minor's descent leaping from
+// 4th all the way to 1st at the peak instead of stepping down through
+// 3rd -- jump size needs its own real weight, not just direction.
+// positionExponent 1.5 was added on top of that for a different reason:
+// plain linear position cost pulls toward low positions by the same
+// proportional amount everywhere, so it wasn't discriminating enough
+// against specifically the far positions (5-7) -- e.g. Bb harmonic and
+// melodic minor's raised 7th degree (A natural) would take 6th position
+// over 2nd despite 2nd being right there. A convex exponent makes 5-7
+// disproportionately costlier without disturbing F/E/C major's already-
+// verified position choices below, which only ever move among positions 1-6.) --
 (function () {
-  var MusicTheory = require("./music-theory.js");
-  var TrombonePositions = require("./trombone-positions.js");
-  var weights = { position: 0.15, positionChange: 0.3, directionChange: 1 };
+  var weights = { position: 0.15, positionExponent: 1.5, positionChange: 0.5, directionChange: 1 };
 
   function solveMajorTwoOctaves(letter, accidental, octave) {
     var root = { letter: letter, accidental: accidental, octave: octave || 2 };
@@ -156,7 +219,7 @@ function assertEqual(actual, expected, message) {
   // (Requiring zero approximate positions anywhere turned out to be too
   // strict: no single weight satisfies that AND keeps C major's D4 out
   // of the zigzag below -- those two goals conflict slightly. What
-  // actually matters, the traditional fingering itself, holds either way.)
+  // actually matters, the traditional position choice itself, holds either way.)
   var f = solveMajorTwoOctaves("F", 0);
   assertEqual(positionsAt(f, "D4"), [4, 4],
     "F major, smoothest-direction weights: D4 in 4th position both times, not 1st");
@@ -175,57 +238,43 @@ function assertEqual(actual, expected, message) {
     "C major, smoothest-direction weights: A3 in 6th position both times, not 2nd (regression test for the DP state-collapse bug)");
 })();
 
+// ---- Bb harmonic and melodic minor's raised 7th (A natural, options
+// {2, 6}) settles at 2nd, not 6th -- the case that motivated adding
+// positionExponent in the first place: a plain linear position weight
+// wasn't loss-averse enough about specifically the far positions to
+// stop the DP reaching all the way out to 6th when 2nd was equally on
+// offer. -----------------------------------------------------------------
+(function () {
+  var weights = { position: 0.15, positionExponent: 1.5, positionChange: 0.5, directionChange: 1 };
+
+  var harmTune = { root: { letter: "B", accidental: -1, octave: 2 }, octaves: 2 };
+  var harmNotes = MusicTheory.ascendingAndDescending(MusicTheory.buildScale(harmTune.root, "harmonicMinor", harmTune.octaves));
+  var harmSolved = Solver.solve(harmNotes, TrombonePositions.positionOptionsForNote, weights);
+
+  var melTune = { root: { letter: "B", accidental: -1, octave: 2 }, octaves: 2 };
+  var melNotes = MusicTheory.buildMelodicMinorFull(melTune.root, melTune.octaves);
+  var melSolved = Solver.solve(melNotes, TrombonePositions.positionOptionsForNote, weights);
+
+  function positionsAt(notes, solved, name) {
+    var out = [];
+    notes.forEach(function (n, i) { if (MusicTheory.noteName(n) === name) out.push(solved.positions[i]); });
+    return out;
+  }
+  assertEqual(positionsAt(harmNotes, harmSolved, "A3"), [2, 2],
+    "Bb harmonic minor: A3 (options 2 or 6) settles at 2nd, not 6th");
+  assertEqual(positionsAt(melNotes, melSolved, "A4"), [2],
+    "Bb melodic minor: A4 (options 2 or 6) settles at 2nd, not 6th");
+})();
+
 // ---- General safety net for the state-collapse bug class: the DP's
 // answer must never cost more than exhaustive search over every
 // combination of options, for any note sequence. This is what would
 // have caught the C-major bug directly, rather than requiring it to
-// be spotted by ear first. ------------------------------------------------
+// be spotted by ear first. A handful of notes with 2-3 options each,
+// deliberately shaped so the cheapest-looking local choice isn't the
+// globally cheapest one (mirroring the real C-major case) -- small
+// enough to brute force exhaustively (3^6 = 729 combinations). --------
 (function () {
-  function bruteForceMinCost(optionsPerNote, weights) {
-    function dirOf(d) { return d > 0 ? 1 : d < 0 ? -1 : 0; }
-    function turnCost(p, c) {
-      if (p === null) return 0;
-      if (p === 0 && c === 0) return 0;
-      if (p === 0 || c === 0) return 0.25;
-      return p !== c ? 1 : 0;
-    }
-    function closerPassedUp(opts, pos) {
-      var count = 0;
-      opts.forEach(function (o) { if (o.position < pos - 1e-9) count++; });
-      return count;
-    }
-    var best = Infinity;
-    function recurse(i, positions) {
-      if (i === optionsPerNote.length) {
-        var total = 0, prevDir = null;
-        for (var k = 0; k < positions.length; k++) {
-          total += (weights.position || 0) * positions[k] +
-            (weights.endzone || 0) * closerPassedUp(optionsPerNote[k], positions[k]);
-          if (k > 0) {
-            var diff = positions[k] - positions[k - 1];
-            var dir = dirOf(diff);
-            total += (weights.positionChange || 0) * Math.abs(diff) +
-              (weights.directionChange || 0) * turnCost(prevDir, dir);
-            prevDir = dir;
-          }
-        }
-        if (total < best) best = total;
-        return;
-      }
-      optionsPerNote[i].forEach(function (opt) {
-        positions.push(opt.position);
-        recurse(i + 1, positions);
-        positions.pop();
-      });
-    }
-    recurse(0, []);
-    return best;
-  }
-
-  // A handful of notes with 2-3 options each, deliberately shaped so
-  // the cheapest-looking local choice isn't the globally cheapest one
-  // (mirroring the real C-major case) -- small enough to brute force
-  // exhaustively (3^6 = 729 combinations).
   var optionsPerNote = [
     [{ position: 1 }],
     [{ position: 2 }, { position: 6 }],
@@ -250,9 +299,7 @@ function assertEqual(actual, expected, message) {
 // 0.15 (see the test above) removes that override: D4,C4,B3 now
 // continue upward together instead of dipping back to 1st. -------------
 (function () {
-  var MusicTheory = require("./music-theory.js");
-  var TrombonePositions = require("./trombone-positions.js");
-  var weights = { position: 0.15, positionChange: 0.3, directionChange: 1 };
+  var weights = { position: 0.15, positionChange: 0.5, directionChange: 1 };
 
   var root = { letter: "C", accidental: 0, octave: 3 };
   var ascending = MusicTheory.buildScale(root, "major", 2);
@@ -262,89 +309,60 @@ function assertEqual(actual, expected, message) {
 
   var c5idx = names.indexOf("C5");
   var c4idx = names.indexOf("C4", c5idx);
-  var segment = names.slice(c5idx, c4idx + 1);
   var chosen = solved.positions.slice(c5idx, c4idx + 1);
   assertEqual(chosen, [1, 2, 2, 1.75, 1, 2, 4, 6],
-    "C major descending, C5 down to C4: D4/C4 continue upward instead of dipping back to 1st (" + segment.join(",") + ")");
+    "C major descending, C5 down to C4: D4/C4 continue upward instead of dipping back to 1st (" +
+    names.slice(c5idx, c4idx + 1).join(",") + ")");
 
   // Brute force every combination for this stretch, holding the rest of
   // the tune fixed at the DP's own choices, to confirm it's optimal.
-  function costOf(positions) {
-    function dirOf(d) { return d > 0 ? 1 : d < 0 ? -1 : 0; }
-    function turnCost(p, c) {
-      if (p === null) return 0;
-      if (p === 0 && c === 0) return 0;
-      if (p === 0 || c === 0) return 0.25;
-      return p !== c ? 1 : 0;
-    }
-    var total = weights.position * positions[0], prevDir = null;
-    for (var i = 1; i < positions.length; i++) {
-      var diff = positions[i] - positions[i - 1], dir = dirOf(diff);
-      total += weights.position * positions[i] + weights.positionChange * Math.abs(diff) +
-        weights.directionChange * turnCost(prevDir, dir);
-      prevDir = dir;
-    }
-    return total;
-  }
-  var optsList = segment.map(function (n) {
-    var letter = n[0];
-    var acc = n.indexOf("♯") >= 0 ? 1 : n.indexOf("♭") >= 0 ? -1 : 0;
-    var octave = Number(n.match(/(\d)$/)[1]);
-    return TrombonePositions.positionOptionsForNote({ letter: letter, accidental: acc, octave: octave })
-      .map(function (o) { return o.position; });
-  });
-  var best = Infinity;
-  (function recurse(i, picked) {
-    if (i === optsList.length) {
-      var trial = solved.positions.slice();
-      for (var k = 0; k < picked.length; k++) trial[c5idx + k] = picked[k];
-      var cost = costOf(trial);
-      if (cost < best) best = cost;
-      return;
-    }
-    optsList[i].forEach(function (p) { picked.push(p); recurse(i + 1, picked); picked.pop(); });
-  })(0, []);
-
-  assertEqual(Math.round(solved.cost * 1000), Math.round(best * 1000),
+  var optionsPerNote = optionsWithSegmentFree(notes, solved, c5idx, c4idx);
+  var bruteForce = bruteForceMinCost(optionsPerNote, weights);
+  assertEqual(Math.round(solved.cost * 1000), Math.round(bruteForce * 1000),
     "C major descending stretch: DP answer matches brute-force optimum for this segment (not a regression of the earlier bug)");
 })();
 
-// ---- endzone: a note with only one reachable position pays nothing,
-// no matter how heavily weighted -- there's nothing closer it passed up. ---
+// ---- positionExponent bends the position preference convex: raising a
+// position to a power above 1 before weighting makes higher positions
+// cost disproportionately more, not just proportionally more. At
+// exponent 1 (the default) the cost ratio between position 6 and
+// position 2 is exactly 3x (linear); above 1, that ratio grows --
+// this is what lets "prefer low positions" actually discriminate
+// against 5-7 specifically instead of spreading its pull evenly
+// across every position number. -----------------------------------------
 (function () {
-  var items = [{}]; // a single "note" with one option
-  function getOptions() { return [{ position: 6 }]; }
-  var solved = Solver.solve(items, getOptions, { position: 0, positionChange: 0, directionChange: 0, endzone: 1000 });
-  assertEqual(solved.positions, [6], "sanity: the only option is chosen");
-  assertEqual(solved.cost, 0, "a note with a single option pays zero endzone cost, however heavily weighted");
+  var items = [{}];
+  function getOptions() { return [{ position: 2 }]; }
+  var linear = Solver.solve(items, getOptions, { position: 1, positionExponent: 1 });
+  var convex = Solver.solve(items, getOptions, { position: 1, positionExponent: 2 });
+  assertEqual(linear.cost, 2, "positionExponent 1 (default): cost is just the position number");
+  assertEqual(convex.cost, 4, "positionExponent 2: cost is the position number squared");
+
+  function getOptions6() { return [{ position: 6 }]; }
+  var linear6 = Solver.solve(items, getOptions6, { position: 1, positionExponent: 1 });
+  var convex6 = Solver.solve(items, getOptions6, { position: 1, positionExponent: 2 });
+  assertEqual(linear6.cost / linear.cost, 3, "linear: position 6 costs exactly 3x position 2");
+  assert(convex6.cost / convex.cost > 3, "positionExponent 2: position 6 costs MORE than 3x position 2 (disproportionate, not just proportional)");
 })();
 
-// ---- endzone scales with how many closer alternatives were passed up:
-// a note offering {2, 4, 6} pays 2x the per-step cost for taking 6
-// (two closer options skipped), 1x for taking 4 (one skipped), and 0
-// for taking 2 (nothing closer available). A second note, anchored via
-// a huge positionChange pull toward whichever position the first note
-// is forced to, is what actually makes each choice the DP's optimum --
-// this isolates the endzone contribution in the resulting total cost. ---
+// ---- The DP's own optimum still matches exhaustive brute force with a
+// nonlinear position exponent in play -- the exponent only changes what
+// positionCost(position) returns, not the DP's structure, but this
+// confirms that directly rather than assuming it. ------------------------
 (function () {
-  var second = { multi: true };
-  function getOptionsFor(anchorPosition) {
-    return function (item) {
-      if (item.multi) return [{ position: 2 }, { position: 4 }, { position: 6 }];
-      return [{ position: anchorPosition }];
-    };
-  }
-  var weights = { position: 0, positionChange: 1000, directionChange: 0, endzone: 1 };
-
-  [[2, 0], [4, 1], [6, 2]].forEach(function (pair) {
-    var anchor = pair[0], expectedEndzoneCost = pair[1];
-    var items = [{ multi: false }, second];
-    var solved = Solver.solve(items, getOptionsFor(anchor), weights);
-    assertEqual(solved.positions, [anchor, anchor],
-      "endzone: huge positionChange pulls the second note to match the anchor at " + anchor);
-    assertEqual(solved.cost, expectedEndzoneCost,
-      "endzone: choosing position " + anchor + " out of {2,4,6} costs exactly " + expectedEndzoneCost);
-  });
+  var optionsPerNote = [
+    [{ position: 1 }],
+    [{ position: 2 }, { position: 6 }],
+    [{ position: 4 }],
+    [{ position: 2 }, { position: 6 }],
+    [{ position: 3 }, { position: 6 }],
+    [{ position: 1 }]
+  ];
+  var weights = { position: 0.3, positionExponent: 1.5, positionChange: 0.3, directionChange: 1 };
+  var solved = Solver.solve(optionsPerNote, function (opts) { return opts; }, weights);
+  var bruteForce = bruteForceMinCost(optionsPerNote, weights);
+  assertEqual(Math.round(solved.cost * 1000), Math.round(bruteForce * 1000),
+    "DP cost matches exhaustive brute force with a nonlinear position exponent too");
 })();
 
 console.log(passes + " passed, " + failures + " failed");

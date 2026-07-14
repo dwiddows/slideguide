@@ -554,7 +554,6 @@
 
   rootSelect.addEventListener("change", render);
   typeSelect.addEventListener("change", render);
-  render();
 
   // ---- Loading a melody from typed-in ABC notation ---------------------------
   // Reuses the exact same renderTune pipeline as the root/type picker --
@@ -603,6 +602,11 @@
     clearTimeout(melodyInputTimer);
     melodyInputTimer = setTimeout(loadMelody, 400);
   });
+
+  // Defaults to the melody box rather than the scale picker on load --
+  // just for this week (World Cup!); swap back to render() here to
+  // return to defaulting on the scale picker.
+  loadMelody();
 
   // ---- Custom-weight sliders --------------------------------------------------
   // Dragging a slider only needs to re-solve and reposition the one

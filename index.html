@@ -14,6 +14,7 @@
   html, body {
     margin: 0;
     padding: 0;
+    width: 100%;
     background: var(--bg);
     color: var(--brass);
     font-family: Georgia, 'Times New Roman', serif;
@@ -21,6 +22,7 @@
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    min-width: 0;
     /* Guaranteed backstop: whatever else is or isn't shrinking properly
        further down, the page itself can never scroll or shift sideways. */
     overflow-x: hidden;

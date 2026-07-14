@@ -329,6 +329,24 @@ function names(notes) {
   assertEqual(solved.approximate[0], true, "G4 alone: that choice is flagged approximate (informational only, no cost)");
 })();
 
+// ---- Position 1 is the slide fully closed -- the shortest it can
+// physically be -- so the flat 7th partial's usual correction (shorten
+// the slide a quarter position) has nowhere left to go there. Ab4 is
+// exactly that case (position 1's 7th partial): it must not appear as
+// a usable option at position 1 at all, unlike G4 above (position 2's
+// 7th partial, which has room to correct). --------------------------
+(function () {
+  var ab4 = { letter: "A", accidental: -1, octave: 4 };
+  var options = TrombonePositions.positionOptionsForNote(ab4);
+
+  assert(!options.some(function (o) { return o.position === 1; }),
+    "Ab4 must not offer position 1 -- its only route there (partial 7) can't actually be corrected that far");
+  assert(options.some(function (o) { return o.position === 3 && o.partial === 8 && !o.approximate; }),
+    "Ab4 should still have a clean option at position 3 (partial 8)");
+  assert(options.some(function (o) { return o.position === 5 && o.partial === 9 && o.approximate; }),
+    "Ab4 should still have the high, hard-to-produce partial 9 alternate at position 5");
+})();
+
 // ---- Every one of the 12 roots, in all 6 scale/arpeggio types, must
 // actually have a playable slide position for every note -- this is
 // the check that would have caught the B-major crash (B4 has no valid

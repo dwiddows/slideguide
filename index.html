@@ -339,7 +339,7 @@
         <label for="melody-input">Enter a Melody:</label>
         <a href="https://abcnotation.com/" target="_blank" rel="noopener">ABC notation format &amp; more tunes</a>
       </div>
-      <textarea id="melody-input" rows="6" spellcheck="false">X:1
+      <textarea id="melody-input" rows="6" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off">X:1
 L:1/8
 K:_D
 _B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _B,2</textarea>
@@ -390,7 +390,7 @@ _B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _
             <tr><th>Position</th><th>Fundamental</th><th>2nd</th><th>3rd</th><th>4th</th><th>5th</th><th>6th</th><th>7th</th><th>8th</th></tr>
           </thead>
           <tbody>
-            <tr><td>1</td><td>B♭1</td><td>B♭2</td><td>F3</td><td>B♭3</td><td>D4</td><td>F4</td><td>A♭4*</td><td>B♭4</td></tr>
+            <tr><td>1</td><td>B♭1</td><td>B♭2</td><td>F3</td><td>B♭3</td><td>D4</td><td>F4</td><td>&mdash;</td><td>B♭4</td></tr>
             <tr><td>2</td><td>A1</td><td>A2</td><td>E3</td><td>A3</td><td>C♯4</td><td>E4</td><td>G4*</td><td>A4</td></tr>
             <tr><td>3</td><td>A♭1</td><td>A♭2</td><td>E♭3</td><td>A♭3</td><td>C4</td><td>E♭4</td><td>G♭4*</td><td>A♭4</td></tr>
             <tr><td>4</td><td>G1</td><td>G2</td><td>D3</td><td>G3</td><td>B3</td><td>D4</td><td>F4*</td><td>G4</td></tr>
@@ -402,7 +402,9 @@ _B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _
       </div>
       <p class="table-caption">* the 7th partial is always noticeably flat (about a third of a
       semitone) -- the position shown already has the real correction players use (shortening the
-      slide slightly to sharpen it back up) baked in.</p>
+      slide slightly to sharpen it back up) baked in. Position 1 has no 7th partial listed at all
+      (&mdash;): it's the slide fully closed, the shortest it can physically be, so there's no room
+      left to shorten it further and correct that flatness -- unlike every other position.</p>
 
       <p>Inverting this table gives us a list of which positions are available for playing each
       note -- one row per pitch class, one column per octave, so you can see how the choices
@@ -417,7 +419,7 @@ _B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _
             <tr><td>F</td><td>6</td><td>1, 6</td><td>1, 3¾*, 6</td><td>&hellip;</td></tr>
             <tr><td>G♭</td><td>5</td><td>5</td><td>2¾*, 5, 7*</td><td>&hellip;</td></tr>
             <tr><td>G</td><td>4</td><td>4</td><td>1¾*, 4, 6*</td><td>&hellip;</td></tr>
-            <tr><td>A♭</td><td>3</td><td>3, 7</td><td>1*, 3, 5*</td><td>&hellip;</td></tr>
+            <tr><td>A♭</td><td>3</td><td>3, 7</td><td>3, 5*</td><td>&hellip;</td></tr>
             <tr><td>A</td><td>2</td><td>2, 6</td><td>2, 4*</td><td>&hellip;</td></tr>
             <tr><td>B♭</td><td>1</td><td>1, 5</td><td>1, 3*</td><td>&hellip;</td></tr>
             <tr><td>B</td><td>7</td><td>4, 7</td><td>2*</td><td>&hellip;</td></tr>

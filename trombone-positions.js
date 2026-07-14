@@ -59,8 +59,17 @@
       for (var partial in PARTIAL_INTERVAL) {
         if (fundamental + PARTIAL_INTERVAL[partial] === targetSemitone) {
           var correction = POSITION_CORRECTION[partial] || 0;
+          var correctedPosition = position + correction;
+          // Position 1 is the slide fully closed -- the shortest it can
+          // physically be. A correction that would need to shorten it
+          // further (partial 7 at position 1) can't actually happen:
+          // there's nowhere left to move, so this stays genuinely flat
+          // with no fix available, unlike the same partial at any other
+          // position. Not a usable option, so it's dropped rather than
+          // clamped to look like an ordinary (correctable) position 1.
+          if (correctedPosition < 1) continue;
           options.push({
-            position: Math.max(1, position + correction),
+            position: correctedPosition,
             partial: Number(partial),
             approximate: !!APPROXIMATE_PARTIALS[partial]
           });

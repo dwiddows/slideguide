@@ -110,8 +110,7 @@
     var keyFlatBStep = opts.keyFlatBStep; // where "B" naturally sits in this clef
     var keySharps = opts.keySharps || 0;
     var keySharpFStep = opts.keySharpFStep; // where "F" naturally sits in this clef
-    var firstNoteX = opts.firstNoteX;
-    var noteSpacing = opts.noteSpacing;
+    var noteX = opts.noteX;       // pixel x for each note, already spaced by duration
     var notes = opts.notes;       // [{ note, step }, ...]
     var noteR = opts.noteR || stepH * 0.64;
 
@@ -167,11 +166,13 @@
 
     // Busier keys (more flats/sharps) need the notes pushed further
     // right so a 5-accidental signature doesn't collide with the first
-    // note -- firstNoteX is a minimum, not a fixed position.
+    // note -- noteX's own first entry is a minimum, not a fixed position,
+    // so the whole (already duration-spaced) sequence shifts right together.
     var keySymbolsEndX = keySymbolCount > 0
       ? keyX + (keySymbolCount - 1) * stepH * 1.7 + stepH * 2.2
       : keyX;
-    firstNoteX = Math.max(firstNoteX, keySymbolsEndX);
+    var shift = Math.max(0, keySymbolsEndX - noteX[0]);
+    if (shift > 0) noteX = noteX.map(function (x) { return x + shift; });
 
     // A harmonic/melodic minor's altered degrees (e.g. a raised 7th)
     // aren't part of the key signature at all -- that only ever carries
@@ -188,7 +189,7 @@
     var noteEls = [];
     var labelEls = [];
     notes.forEach(function (n, i) {
-      var x = firstNoteX + i * noteSpacing;
+      var x = noteX[i];
       var y = stepToY(n.step);
 
       // Ledger lines: draw a short line at every line-position (even step)
@@ -457,30 +458,32 @@
   });
 
   // ---- Wiring the picker to the panels ---------------------------------------
+  // durations are in "quarter notes" (a generated scale/arpeggio is just
+  // a uniform run of them; a loaded melody's real rhythm, from ABC's own
+  // fraction-of-a-whole-note units divided by a quarter, lands on the
+  // same scale) -- one shared unit for both staff spacing and playback timing.
+  var QUARTER_NOTE = 0.25;
   var currentNotes = [];
+  var currentDurations = [];
   var staffHandle = null;
   var staffScroll = document.getElementById("staff-scroll");
-  var layout = { firstNoteX: 0, noteSpacing: 0 };
+  var layout = { noteX: [] };
 
   // The staff stays put -- no distracting motion right from the start --
   // until the playing note would reach the middle of the visible area,
   // at which point it holds the note there, scrolling to keep up.
   function scrollStaffToNote(i) {
-    var noteX = layout.firstNoteX + i * layout.noteSpacing;
     var middle = staffScroll.clientWidth / 2;
     var maxScroll = Math.max(0, staffSvg.width.baseVal.value - staffScroll.clientWidth);
-    staffScroll.scrollLeft = Math.max(0, Math.min(maxScroll, noteX - middle));
+    staffScroll.scrollLeft = Math.max(0, Math.min(maxScroll, layout.noteX[i] - middle));
   }
 
-  function render() {
-    var r = ROOTS[Number(rootSelect.value)];
-    var typeKey = typeSelect.value;
-    var tune = chooseTune(r.letter, r.accidental, typeKey);
-    currentNotes = typeKey === "melodicMinor"
-      ? MusicTheory.buildMelodicMinorFull(tune.root, tune.octaves)
-      : MusicTheory.ascendingAndDescending(MusicTheory.buildScale(tune.root, typeKey, tune.octaves));
-
-    var keySig = MusicTheory.keySignature(tune.root, typeKey);
+  // Shared by both tune sources (the root/type picker and a loaded ABC
+  // melody): lays out the staff and re-solves every panel for whatever
+  // notes+durations+key signature it's handed.
+  function renderTune(notes, durations, keySig) {
+    currentNotes = notes;
+    currentDurations = durations;
     var staffNotes = currentNotes.map(function (n) {
       return {
         note: MusicTheory.noteName(n), step: MusicTheory.toBassClefStep(n),
@@ -501,9 +504,18 @@
     var maxStep = Math.max.apply(null, staffNotes.map(function (n) { return n.step; }));
     var bottomY = maxStep * stepH + margin;
     var staffHeight = bottomY + margin;
-    layout.firstNoteX = 170 * STAFF_SCALE;
-    layout.noteSpacing = 55 * STAFF_SCALE;
-    var staffWidth = layout.firstNoteX + staffNotes.length * layout.noteSpacing + margin;
+
+    // Each note's width on the page is proportional to its own duration
+    // (a half note takes up twice the room a quarter note does), so a
+    // loaded melody's rhythm is visible in the spacing, not just audible.
+    var baseSpacing = 55 * STAFF_SCALE;
+    var noteX = [170 * STAFF_SCALE];
+    for (var i = 1; i < currentNotes.length; i++) {
+      noteX.push(noteX[i - 1] + baseSpacing * (currentDurations[i - 1] / QUARTER_NOTE));
+    }
+    layout.noteX = noteX;
+    var lastWidth = baseSpacing * (currentDurations[currentDurations.length - 1] / QUARTER_NOTE);
+    var staffWidth = noteX[noteX.length - 1] + lastWidth + margin;
     staffSvg.setAttribute("viewBox", "0 0 " + staffWidth + " " + staffHeight);
     staffSvg.setAttribute("width", staffWidth);
     staffSvg.setAttribute("height", staffHeight);
@@ -513,7 +525,7 @@
       left: left, right: staffWidth - rightMargin, bottomY: bottomY, stepH: stepH,
       keyFlats: keySig.flats, keyFlatBStep: 2,
       keySharps: keySig.sharps, keySharpFStep: 6,
-      firstNoteX: layout.firstNoteX, noteSpacing: layout.noteSpacing, notes: staffNotes
+      noteX: noteX, notes: staffNotes
     });
     staffScroll.scrollLeft = 0;
 
@@ -525,9 +537,68 @@
     });
   }
 
+  function render() {
+    var r = ROOTS[Number(rootSelect.value)];
+    var typeKey = typeSelect.value;
+    var tune = chooseTune(r.letter, r.accidental, typeKey);
+    var notes = typeKey === "melodicMinor"
+      ? MusicTheory.buildMelodicMinorFull(tune.root, tune.octaves)
+      : MusicTheory.ascendingAndDescending(MusicTheory.buildScale(tune.root, typeKey, tune.octaves));
+    var durations = notes.map(function () { return QUARTER_NOTE; });
+    renderTune(notes, durations, MusicTheory.keySignature(tune.root, typeKey));
+  }
+
   rootSelect.addEventListener("change", render);
   typeSelect.addEventListener("change", render);
   render();
+
+  // ---- Loading a melody from typed-in ABC notation ---------------------------
+  // Reuses the exact same renderTune pipeline as the root/type picker --
+  // an ABC melody's key signature comes from its own K: field (via
+  // AbcImport), not from MusicTheory.keySignature, since it isn't
+  // necessarily one of the scales/arpeggios this app generates.
+  //
+  // There's no separate "load" step or button: clicking into the text
+  // box immediately shows what's already typed there on the staff (in
+  // case the scale picker was the last thing shown), and editing it
+  // keeps that live -- the staff always shows whichever of the two
+  // inputs (this box, or the root/type picker) was touched most
+  // recently, and the single Play button below just plays that.
+  var melodyInput = document.getElementById("melody-input");
+  var melodyError = document.getElementById("melody-error");
+
+  function loadMelody() {
+    melodyError.textContent = "";
+    var parsed;
+    try {
+      parsed = AbcImport.parseAbcMelody(melodyInput.value);
+    } catch (e) {
+      melodyError.textContent = e.message;
+      return;
+    }
+    // Checked up front, before touching the staff/panels: a melody with
+    // even one note outside this trigger-less horn's range would
+    // otherwise leave the display mid-update when Solver.solve throws.
+    var unplayable = parsed.notes.filter(function (n) {
+      return TrombonePositions.positionOptionsForNote(n).length === 0;
+    });
+    if (unplayable.length > 0) {
+      melodyError.textContent = "This melody goes outside the trombone's playable range at " +
+        unplayable.map(MusicTheory.noteName).join(", ") + ".";
+      return;
+    }
+    renderTune(parsed.notes, parsed.durations, parsed.keySignature);
+  }
+
+  // Typing fires on every keystroke, which would otherwise re-parse
+  // (and flash parse errors) mid-word -- debounced so it only re-renders
+  // once typing actually pauses.
+  var melodyInputTimer = null;
+  melodyInput.addEventListener("focus", loadMelody);
+  melodyInput.addEventListener("input", function () {
+    clearTimeout(melodyInputTimer);
+    melodyInputTimer = setTimeout(loadMelody, 400);
+  });
 
   // ---- Custom-weight sliders --------------------------------------------------
   // Dragging a slider only needs to re-solve and reposition the one
@@ -550,8 +621,14 @@
   // ---- Playback sequencing ---------------------------------------------------
   // One shared clock drives all three panels (same pitches, same timing --
   // only the position choice differs), and audio plays once, not 3x.
+  // One Play button, one tempo, always playing whatever renderTune most
+  // recently put on the staff.
   var playBtn = document.getElementById("play-btn");
   var tempoSelect = document.getElementById("tempo-select");
+  var tempoValue = document.getElementById("tempo-value");
+  tempoSelect.addEventListener("input", function () {
+    tempoValue.textContent = tempoSelect.value;
+  });
   var playing = false;
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -560,10 +637,13 @@
     if (playing) return;
     playing = true;
     playBtn.disabled = true;
-    var noteMs = parseInt(tempoSelect.value, 10);
-    var slideMs = Math.round(noteMs * 0.35);
+    // The slider is a real BPM value (quarter notes per minute, the
+    // usual convention), converted straight to milliseconds per quarter.
+    var quarterMs = 60000 / Number(tempoSelect.value);
 
     for (var i = 0; i < currentNotes.length; i++) {
+      var noteMs = Math.round(quarterMs * (currentDurations[i] / QUARTER_NOTE));
+      var slideMs = Math.round(noteMs * 0.35);
       panels.forEach(function (panel) {
         panel.slide.setPosition(panel.positions[i]);
       });

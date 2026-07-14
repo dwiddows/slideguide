@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Trombone Positions: Bb Major Scale</title>
+<title>Trombone Slide Positions Calculator</title>
 <style>
   :root {
     --brass: #e8b33d;
@@ -217,27 +217,146 @@
     font-size: 0.8em;
     font-style: italic;
   }
+  .input-row {
+    width: 100%;
+    max-width: 1400px;
+    margin: 4px 0 20px;
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .melody-entry {
+    flex: 2 1 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .scale-entry {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .playback-row {
+    width: 100%;
+    max-width: 1400px;
+    margin: 4px 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .tempo-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tempo-entry label {
+    color: var(--brass-bright);
+    font-size: 0.95em;
+    white-space: nowrap;
+  }
+  .tempo-entry input[type="range"] {
+    width: 220px;
+  }
+  .melody-entry label, .scale-entry label {
+    color: var(--brass-bright);
+    font-size: 0.95em;
+  }
+  .input-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .input-label-row a {
+    color: var(--brass-dim);
+    font-size: 0.85em;
+  }
+  .input-label-row a:hover {
+    color: var(--brass-bright);
+  }
+  .melody-entry textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1a1400;
+    color: var(--brass);
+    border: 1px solid var(--brass-dim);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: monospace;
+    font-size: 0.9em;
+    resize: vertical;
+  }
+  .melody-controls, .scale-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .melody-error {
+    color: #ff6b5a;
+    font-size: 0.85em;
+  }
+  .credits {
+    width: 100%;
+    max-width: 900px;
+    margin: 30px auto 20px;
+    color: var(--brass-dim);
+    font-size: 0.8em;
+    text-align: center;
+  }
+  .credits a {
+    color: var(--brass-dim);
+    text-decoration: underline;
+  }
+  .credits a:hover {
+    color: var(--brass-bright);
+  }
 </style>
 </head>
 <body>
 
-<h1>Trombone Slide Positions</h1>
+<h1>Trombone Slide Positions Calculator</h1>
 
 <div class="stage">
-  <div class="toolbar">
-    <select id="root-select"></select>
-    <select id="type-select"></select>
-    <div class="divider"></div>
-    <button id="play-btn">&#9654; Play</button>
-    <select id="tempo-select">
-      <option value="650">Slow</option>
-      <option value="420" selected>Medium</option>
-      <option value="260">Fast</option>
-    </select>
+  <div class="input-row">
+    <div class="melody-entry">
+      <div class="input-label-row">
+        <label for="melody-input">Enter a Melody:</label>
+        <a href="https://abcnotation.com/" target="_blank" rel="noopener">ABC notation format &amp; more tunes</a>
+      </div>
+      <textarea id="melody-input" rows="6" spellcheck="false">X:1
+L:1/8
+K:_D
+_B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _B,2</textarea>
+      <div class="melody-controls">
+        <span id="melody-error" class="melody-error"></span>
+      </div>
+    </div>
+
+    <div class="scale-entry">
+      <label>Choose a Scale:</label>
+      <div class="scale-controls">
+        <select id="root-select"></select>
+        <select id="type-select"></select>
+      </div>
+    </div>
   </div>
 
   <div class="staff-scroll" id="staff-scroll">
     <svg id="staff-svg"></svg>
+  </div>
+
+  <div class="playback-row">
+    <button id="play-btn">&#9654; Play</button>
+    <div class="tempo-entry">
+      <label for="tempo-select">Tempo (<span id="tempo-value">100</span>):</label>
+      <input type="range" id="tempo-select" min="40" max="400" step="1" value="100">
+    </div>
   </div>
 
   <div class="panels" id="panels"></div>
@@ -343,7 +462,7 @@
         </table>
       </div>
 
-      <h3>4. Scoring a whole passage</h3>
+      <h3>4. Calculating a Total Score for a Whole Passage</h3>
       <p>The total cost of a position sequence is these four costs added up across every note:
       each note's own position cost, plus the position-change and direction-change cost between
       it and the note before it. A locally cheapest choice for one note can force an expensive one
@@ -359,11 +478,19 @@
       out.</p>
     </div>
   </details>
+
+  <p class="credits">Designed and tested by Dominic Widdows. Coded by Claude.
+  Thanks for the encouragement to <a href="https://www.colinpulkrabek.com/" target="_blank"
+  rel="noopener">Colin Pulkrabek</a> -- ask him about lessons.<br>
+  Released under the MIT License. Melody parsing by
+  <a href="https://abcjs.net/" target="_blank" rel="noopener">abcjs</a> (also MIT).</p>
 </div>
 
 <script src="music-theory.js"></script>
 <script src="trombone-positions.js"></script>
 <script src="solver.js"></script>
+<script src="abcjs-basic-min.js"></script>
+<script src="abc-import.js"></script>
 <script src="trombone.js"></script>
 </body>
 </html>

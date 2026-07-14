@@ -511,9 +511,9 @@ _B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _
       <p>The total cost of a position sequence is these four costs added up across every note:
       each note's own position cost, plus the position-change and direction-change cost between
       it and the note before it. A locally cheapest choice for one note can force an expensive one
-      at the next, so the solver weighs the whole passage together (not just a scale or
-      arpeggio -- any note sequence) as a dynamic program: moving through it one note at a time,
-      it keeps track of the cheapest running total for every (position, incoming-direction)
+      at the next, so the solver weighs the whole passage together as a dynamic program: moving
+      through it one note at a time, it keeps track of the cheapest running total for every
+      (position, incoming-direction)
       combination reachable so far, carrying forward whichever paths could still turn out
       cheapest overall, and only reads off the actual position sequence once it reaches the last
       note and knows which running total won.</p>

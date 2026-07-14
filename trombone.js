@@ -494,9 +494,13 @@
     // Sized to fit however tall and long *this* tune actually is: two
     // octaves from a high root reaches well above the staff, and up-and-
     // down doubles the note count, so neither dimension is fixed.
-    // Scaled to 2/3 overall -- this is just showing obvious scales, more
-    // a mnemonic than something that needs to be fully readable.
-    var STAFF_SCALE = 2 / 3;
+    // Scaled to 2/3 overall on a normal screen -- this is just showing
+    // obvious scales, more a mnemonic than something that needs to be
+    // fully readable. Smaller still on a narrow phone screen, where the
+    // staff would otherwise dominate the page over the trombone graphics
+    // (which have their own legibility floor -- see .trombone-svg's
+    // min-width -- so they don't shrink to match).
+    var STAFF_SCALE = window.innerWidth < 600 ? 0.45 : 2 / 3;
     var stepH = 11 * STAFF_SCALE;
     var margin = 40 * STAFF_SCALE;
     var left = 60 * STAFF_SCALE;

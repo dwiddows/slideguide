@@ -98,9 +98,11 @@
   }
   .panel-body {
     padding: 6px 4px 12px;
+    overflow-x: auto;
   }
   .trombone-svg {
     width: 100%;
+    min-width: 480px;
     height: auto;
     display: block;
   }
@@ -326,6 +328,37 @@
   .credits a:hover {
     color: var(--brass-bright);
   }
+  /* On a narrow phone, the staff and surrounding controls otherwise
+     dominate the page while the trombone graphics -- the actual point
+     of the widget -- shrink down small: pull the controls back so the
+     trombones get more of the visual weight (the staff's own size is
+     handled separately, in JS, since it's rendered as an SVG at a
+     computed pixel size rather than styled via CSS). */
+  @media (max-width: 600px) {
+    h1 {
+      font-size: 1.1em;
+      margin: 16px 0 12px;
+    }
+    .melody-entry label, .scale-entry label, .input-label-row a {
+      font-size: 0.82em;
+    }
+    .melody-entry textarea {
+      font-size: 0.78em;
+    }
+    select, button {
+      font-size: 0.85em;
+      padding: 7px 14px;
+    }
+    .tempo-entry input[type="range"] {
+      width: 140px;
+    }
+    .panel-details summary h2 {
+      font-size: 0.95em;
+    }
+    .panel-details summary .panel-note {
+      font-size: 0.75em;
+    }
+  }
 </style>
 </head>
 <body>
@@ -334,9 +367,17 @@
 
 <div class="stage">
   <div class="input-row">
+    <div class="scale-entry">
+      <label>Choose a Scale:</label>
+      <div class="scale-controls">
+        <select id="root-select"></select>
+        <select id="type-select"></select>
+      </div>
+    </div>
+
     <div class="melody-entry">
       <div class="input-label-row">
-        <label for="melody-input">Enter a Melody:</label>
+        <label for="melody-input">Or Enter a Melody:</label>
         <a href="https://abcnotation.com/" target="_blank" rel="noopener">ABC notation format &amp; more tunes</a>
       </div>
       <textarea id="melody-input" rows="6" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off">X:1
@@ -345,14 +386,6 @@ K:_D
 _B, C _D _B, F2 F2 _E2 C _D _E C _E2 _E2 _D2 _B, C _D _B, _D2 _E2 C _B, _A, C2 _B,2</textarea>
       <div class="melody-controls">
         <span id="melody-error" class="melody-error"></span>
-      </div>
-    </div>
-
-    <div class="scale-entry">
-      <label>Choose a Scale:</label>
-      <div class="scale-controls">
-        <select id="root-select"></select>
-        <select id="type-select"></select>
       </div>
     </div>
   </div>

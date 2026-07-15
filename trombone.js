@@ -74,6 +74,57 @@
     return { setPosition: setPosition };
   }
 
+  // A horizontal strip of position-number labels, one per note, sharing
+  // the staff's own pixel coordinate system (noteX) so they line up
+  // with the notes above even though this sits far below them, under
+  // its own panel. It never scrolls itself -- its scroll offset is
+  // driven entirely by mirroring the staff's own scroll position, so
+  // it can't drift out of alignment the way two independently
+  // scrollable things could.
+  // Real trombone notation names a lipped position relative to the
+  // NEXT position up, marked with an asterisk (see digitaltrombone.com's
+  // alternate-position chart: an asterisk means "place the slide further
+  // in than the standard position" -- e.g. their "3*" is between 3rd and
+  // 2nd), not as a fraction hanging off the position below -- so 1.75
+  // (shortened a quarter position from 2nd to compensate for the flat
+  // 7th partial) is "2*", not "1 3/4". Every fractional position here is
+  // exactly X.75 (the one correction this app applies), so this only
+  // needs to handle that one case.
+  function fmtPosition(p) {
+    var whole = Math.floor(p);
+    return Math.abs(p - whole - 0.75) < 1e-9 ? (whole + 1) + "*" : String(p);
+  }
+  function makePositionList(container) {
+    var wrap = htmlEl("div", { class: "position-list" });
+    var inner = htmlEl("div", { class: "position-list-inner" });
+    wrap.appendChild(inner);
+    container.appendChild(wrap);
+
+    var labelEls = [];
+
+    function setNumbers(positions, noteX) {
+      inner.textContent = "";
+      labelEls = positions.map(function (p, i) {
+        var label = htmlEl("span", { class: "position-list-number" }, fmtPosition(p));
+        label.style.left = noteX[i] + "px";
+        inner.appendChild(label);
+        return label;
+      });
+      var lastX = noteX.length ? noteX[noteX.length - 1] : 0;
+      inner.style.width = (lastX + 40) + "px";
+    }
+
+    function setScrollOffset(x) {
+      inner.style.transform = "translateX(" + (-x) + "px)";
+    }
+
+    function highlightNote(index) {
+      labelEls.forEach(function (e, i) { e.classList.toggle("active", i === index); });
+    }
+
+    return { setNumbers: setNumbers, setScrollOffset: setScrollOffset, highlightNote: highlightNote };
+  }
+
   var SLIDE_X0 = 120;
   var SLIDE_Y_TOP = 42;
   var SLIDE_Y_BOTTOM = 72;
@@ -84,10 +135,14 @@
   function drawPositionRuler(svg) {
     for (var p = 1; p <= MAX_POSITION; p++) {
       var rulerX = SLIDE_X0 + (p - 1) / (MAX_POSITION - 1) * SLIDE_TRAVEL;
+      // Ticks on just the upper side of the axis line now (not crossing
+      // through it) -- less ink, and a few pixels shorter overall, now
+      // that the position-number list is the primary reference and this
+      // ruler is more of a background cue.
       svg.appendChild(el("line", {
-        x1: rulerX, y1: 100, x2: rulerX, y2: 108, stroke: "var(--brass-dim)", "stroke-width": 1
+        x1: rulerX, y1: 100, x2: rulerX, y2: 104, stroke: "var(--brass-dim)", "stroke-width": 1
       }));
-      var t = el("text", { x: rulerX, y: 122, "text-anchor": "middle", "font-size": 11, fill: "var(--brass-dim)" });
+      var t = el("text", { x: rulerX, y: 122, "text-anchor": "middle", "font-size": 9, fill: "var(--brass-dim)" });
       t.textContent = p;
       svg.appendChild(t);
     }
@@ -440,6 +495,7 @@
 
     var body = htmlEl("div", { class: "panel-body" });
     if (preset.isCustom) body.appendChild(expertControls.element);
+    var positionList = makePositionList(body);
     var tromboneSvg = el("svg", {
       class: "trombone-svg", viewBox: "0 0 900 150", width: "1800", height: "300"
     });
@@ -454,7 +510,7 @@
     drawPositionRuler(tromboneSvg);
     slide.setPosition(1);
 
-    return { preset: preset, slide: slide, positions: [] };
+    return { preset: preset, slide: slide, positionList: positionList, positions: [] };
   });
 
   // ---- Wiring the picker to the panels ---------------------------------------
@@ -468,6 +524,18 @@
   var staffHandle = null;
   var staffScroll = document.getElementById("staff-scroll");
   var layout = { noteX: [] };
+
+  // Each panel's position-number list mirrors the staff's own scroll
+  // position exactly (rather than scrolling independently) so it can
+  // never drift out of alignment with the noteX coordinates it shares.
+  // This fires for both user-dragged scrolling and the programmatic
+  // scrollLeft assignments during playback (scrollStaffToNote below) --
+  // native scroll events cover both, no separate call needed there.
+  staffScroll.addEventListener("scroll", function () {
+    panels.forEach(function (panel) {
+      panel.positionList.setScrollOffset(staffScroll.scrollLeft);
+    });
+  });
 
   // The staff stays put -- no distracting motion right from the start --
   // until the playing note would reach the middle of the visible area,
@@ -538,6 +606,8 @@
       var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, weights);
       panel.positions = solved.positions;
       panel.slide.setPosition(panel.positions[0]);
+      panel.positionList.setNumbers(panel.positions, noteX);
+      panel.positionList.setScrollOffset(0);
     });
   }
 
@@ -617,6 +687,8 @@
     var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, customWeights());
     customPanel.positions = solved.positions;
     customPanel.slide.setPosition(customPanel.positions[0]);
+    customPanel.positionList.setNumbers(customPanel.positions, layout.noteX);
+    customPanel.positionList.setScrollOffset(staffScroll.scrollLeft);
   }
   WEIGHT_CONFIGS.forEach(function (cfg) {
     var pair = expertControls.inputs[cfg.id];
@@ -654,6 +726,7 @@
       var slideMs = Math.round(noteMs * 0.35);
       panels.forEach(function (panel) {
         panel.slide.setPosition(panel.positions[i]);
+        panel.positionList.highlightNote(i);
       });
       staffHandle.highlightNote(i);
       scrollStaffToNote(i);
@@ -667,6 +740,7 @@
     staffHandle.highlightNote(-1);
     panels.forEach(function (panel) {
       panel.slide.setPosition(panel.positions[0]);
+      panel.positionList.highlightNote(-1);
     });
     playing = false;
     playBtn.disabled = false;

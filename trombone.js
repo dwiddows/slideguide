@@ -94,32 +94,42 @@
     var whole = Math.floor(p);
     return Math.abs(p - whole - 0.75) < 1e-9 ? (whole + 1) + "*" : String(p);
   }
+  // Built as SVG text rather than HTML+CSS-transform, deliberately --
+  // that's the exact same coordinate pipeline the staff notes use
+  // (an SVG with viewBox matching its own pixel width 1:1), so there's
+  // no risk of two different rendering technologies (SVG geometry vs.
+  // CSS box layout) rounding sub-pixel positions differently under an
+  // unusual zoom level or display scaling factor.
   function makePositionList(container) {
     var wrap = htmlEl("div", { class: "position-list" });
-    var inner = htmlEl("div", { class: "position-list-inner" });
-    wrap.appendChild(inner);
+    var svg = el("svg", { class: "position-list-svg", height: "20" });
+    wrap.appendChild(svg);
     container.appendChild(wrap);
 
-    var labelEls = [];
+    var textEls = [];
 
     function setNumbers(positions, noteX) {
-      inner.textContent = "";
-      labelEls = positions.map(function (p, i) {
-        var label = htmlEl("span", { class: "position-list-number" }, fmtPosition(p));
-        label.style.left = noteX[i] + "px";
-        inner.appendChild(label);
-        return label;
-      });
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
       var lastX = noteX.length ? noteX[noteX.length - 1] : 0;
-      inner.style.width = (lastX + 40) + "px";
+      var width = lastX + 40;
+      svg.setAttribute("width", width);
+      svg.setAttribute("viewBox", "0 0 " + width + " 20");
+      textEls = positions.map(function (p, i) {
+        var t = el("text", {
+          x: noteX[i], y: 15, "text-anchor": "middle", class: "position-list-number"
+        });
+        t.textContent = fmtPosition(p);
+        svg.appendChild(t);
+        return t;
+      });
     }
 
     function setScrollOffset(x) {
-      inner.style.transform = "translateX(" + (-x) + "px)";
+      svg.style.transform = "translateX(" + (-x) + "px)";
     }
 
     function highlightNote(index) {
-      labelEls.forEach(function (e, i) { e.classList.toggle("active", i === index); });
+      textEls.forEach(function (e, i) { e.classList.toggle("active", i === index); });
     }
 
     return { setNumbers: setNumbers, setScrollOffset: setScrollOffset, highlightNote: highlightNote };

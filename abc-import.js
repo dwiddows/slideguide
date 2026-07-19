@@ -22,10 +22,15 @@
  *     that measure, then reset at the next barline) has to be applied
  *     by hand here, walking the note stream in order.
  *
- * Rests are dropped entirely, not converted into a timed gap -- a
- * deliberate scope call, not an oversight, so a tune with rests will
- * currently play faster than written (the notes on either side of a
- * rest end up back to back).
+ * Rests (z/x/Z/X -- ABCJS resolves multi-measure Z/X's duration against
+ * the tune's own time signature for us, so they need no special-casing
+ * here) come back as `null` in the notes array, with their real
+ * duration in the parallel durations array -- a timed gap, not a
+ * dropped event. Callers that hand notes to something pitch-specific
+ * (the trombone position solver, key-signature/accidental logic) need
+ * to filter nulls out first; callers doing layout or timing (staff
+ * spacing, playback) want them left in, since that's exactly what
+ * makes the gap take up real time and real horizontal space.
  *
  * Works as a plain global (<script src="abc-import.js">) in the
  * browser and as a CommonJS module under Node, same as this project's
@@ -94,7 +99,12 @@
         resetToKeySignature();
         return;
       }
-      if (el.el_type !== "note" || !el.pitches) return; // skip rests
+      if (el.el_type !== "note") return;
+      if (el.rest) {
+        notes.push(null);
+        durations.push(el.duration);
+        return;
+      }
       var pitchInfo = el.pitches[0]; // chords: just the top/only note
       var letter = LETTERS[((pitchInfo.pitch % 7) + 7) % 7];
       var accidental;
@@ -137,7 +147,7 @@
     }, []);
 
     var resolved = resolveVoice(voice, key);
-    if (resolved.notes.length === 0) {
+    if (!resolved.notes.some(function (n) { return n !== null; })) {
       throw new Error("No notes found in this tune");
     }
     return {

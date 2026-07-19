@@ -188,6 +188,20 @@ function names(notes) {
   assertEqual(marks[cSharp4Indices[1]], null, "D harmonic minor: C#4's second occurrence is unchanged since the first, no re-mark needed");
 })();
 
+// ---- accidentalsToDisplay: a rest (null, same representation as
+// everywhere else in this app) needs no mark and doesn't disturb the
+// running per-pitch state for the real notes around it. -----------------
+(function () {
+  var eb4 = { letter: "E", accidental: -1, octave: 4 };
+  var notes = [eb4, null, eb4];
+  var sig = { flats: 0, sharps: 0 };
+  var marks = MusicTheory.accidentalsToDisplay(notes, sig);
+  assertEqual(marks[0], -1, "the first Eb needs its flat written");
+  assertEqual(marks[1], null, "a rest gets no mark");
+  assertEqual(marks[2], null,
+    "the second Eb, after the rest, is unchanged since the first -- the rest didn't reset it");
+})();
+
 // ---- Eb harmonic minor: the natural-minor 7th is already a flat (Db),
 // so raising it a semitone lands on D *natural*, not a sharp -- the
 // written accidental needed is a natural sign, not always a sharp. -----

@@ -114,7 +114,10 @@
       var width = lastX + 40;
       svg.setAttribute("width", width);
       svg.setAttribute("viewBox", "0 0 " + width + " 20");
+      // A rest (null -- no trombone position at all) just leaves a gap
+      // in the list, the same way it leaves a gap in the staff.
       textEls = positions.map(function (p, i) {
+        if (p === null) return null;
         var t = el("text", {
           x: noteX[i], y: 15, "text-anchor": "middle", class: "position-list-number"
         });
@@ -129,7 +132,7 @@
     }
 
     function highlightNote(index) {
-      textEls.forEach(function (e, i) { e.classList.toggle("active", i === index); });
+      textEls.forEach(function (e, i) { if (e) e.classList.toggle("active", i === index); });
     }
 
     return { setNumbers: setNumbers, setScrollOffset: setScrollOffset, highlightNote: highlightNote };
@@ -255,6 +258,24 @@
     var labelEls = [];
     notes.forEach(function (n, i) {
       var x = noteX[i];
+
+      // A rest has no pitch, no ledger lines, no accidental, and no
+      // note-name label -- just a glyph floating around the middle
+      // line, the conventional spot regardless of the rest's own
+      // duration (this staff is a mnemonic, not full engraving, so one
+      // glyph for every rest length is enough).
+      if (n === null) {
+        var restGlyph = el("text", {
+          x: x, y: stepToY(4) + stepH * 0.4, "text-anchor": "middle",
+          "font-size": stepH * 2.2, class: "staff-note"
+        });
+        restGlyph.textContent = "𝄽";
+        svg.appendChild(restGlyph);
+        noteEls.push(restGlyph);
+        labelEls.push(null);
+        return;
+      }
+
       var y = stepToY(n.step);
 
       // Ledger lines: draw a short line at every line-position (even step)
@@ -298,7 +319,7 @@
 
     function highlightNote(index) {
       noteEls.forEach(function (e, i) { e.classList.toggle("active", i === index); });
-      labelEls.forEach(function (e, i) { e.classList.toggle("active", i === index); });
+      labelEls.forEach(function (e, i) { if (e) e.classList.toggle("active", i === index); });
     }
 
     return { highlightNote: highlightNote };
@@ -562,7 +583,12 @@
   function renderTune(notes, durations, keySig) {
     currentNotes = notes;
     currentDurations = durations;
+    // Rests stay null here too (same convention as currentNotes) --
+    // makeStaff decides how to draw them; this function just needs to
+    // not blow up computing the staff's overall height, which rests
+    // don't affect at all (filtered out before taking the max step).
     var staffNotes = currentNotes.map(function (n) {
+      if (n === null) return null;
       return {
         note: MusicTheory.noteName(n), step: MusicTheory.toBassClefStep(n),
         letter: n.letter, accidental: n.accidental, octave: n.octave
@@ -583,7 +609,8 @@
     var margin = 40 * STAFF_SCALE;
     var left = 60 * STAFF_SCALE;
     var rightMargin = 20 * STAFF_SCALE;
-    var maxStep = Math.max.apply(null, staffNotes.map(function (n) { return n.step; }));
+    var maxStep = Math.max.apply(null, staffNotes.filter(function (n) { return n !== null; })
+      .map(function (n) { return n.step; }));
     var bottomY = maxStep * stepH + margin;
     var staffHeight = bottomY + margin;
 
@@ -613,12 +640,41 @@
 
     panels.forEach(function (panel) {
       var weights = panel.preset.getWeights ? panel.preset.getWeights() : panel.preset.weights;
-      var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, weights);
-      panel.positions = solved.positions;
-      panel.slide.setPosition(panel.positions[0]);
+      panel.positions = solvePositions(currentNotes, weights);
+      panel.slide.setPosition(firstRealPosition(panel.positions));
       panel.positionList.setNumbers(panel.positions, noteX);
       panel.positionList.setScrollOffset(0);
     });
+  }
+
+  // The solver only ever deals in real, playable pitches -- rests have
+  // no trombone position at all -- so it's handed just the non-null
+  // notes, and its answer is expanded back out to one entry per
+  // original index (null at every rest) so everything downstream
+  // (the position list, playback) can keep indexing by the same i as
+  // currentNotes/currentDurations/noteX.
+  function solvePositions(notes, weights) {
+    var realIndices = [];
+    var realNotes = [];
+    notes.forEach(function (n, i) {
+      if (n !== null) { realIndices.push(i); realNotes.push(n); }
+    });
+    var solved = Solver.solve(realNotes, TrombonePositions.positionOptionsForNote, weights);
+    var positions = notes.map(function () { return null; });
+    realIndices.forEach(function (originalIndex, solvedIndex) {
+      positions[originalIndex] = solved.positions[solvedIndex];
+    });
+    return positions;
+  }
+
+  // A tune could in principle open with a pickup rest -- the initial
+  // slide position (before playback starts moving it note by note)
+  // needs the first REAL position, not necessarily positions[0].
+  function firstRealPosition(positions) {
+    for (var i = 0; i < positions.length; i++) {
+      if (positions[i] !== null) return positions[i];
+    }
+    return null;
   }
 
   function render() {
@@ -634,6 +690,7 @@
 
   rootSelect.addEventListener("change", render);
   typeSelect.addEventListener("change", render);
+  render();
 
   // ---- Loading a melody from typed-in ABC notation ---------------------------
   // Reuses the exact same renderTune pipeline as the root/type picker --
@@ -662,8 +719,9 @@
     // Checked up front, before touching the staff/panels: a melody with
     // even one note outside this trigger-less horn's range would
     // otherwise leave the display mid-update when Solver.solve throws.
+    // Rests (null) have no pitch to check at all.
     var unplayable = parsed.notes.filter(function (n) {
-      return TrombonePositions.positionOptionsForNote(n).length === 0;
+      return n !== null && TrombonePositions.positionOptionsForNote(n).length === 0;
     });
     if (unplayable.length > 0) {
       melodyError.textContent = "This melody goes outside the trombone's playable range at " +
@@ -683,20 +741,14 @@
     melodyInputTimer = setTimeout(loadMelody, 400);
   });
 
-  // Defaults to the melody box rather than the scale picker on load --
-  // just for this week (World Cup!); swap back to render() here to
-  // return to defaulting on the scale picker.
-  loadMelody();
-
   // ---- Custom-weight sliders --------------------------------------------------
   // Dragging a slider only needs to re-solve and reposition the one
   // custom-weight trombone, not rebuild the whole staff -- that keeps it
   // responsive while dragging, and leaves the staff scroll position alone.
   var customPanel = panels[panels.length - 1];
   function updateCustomPanel() {
-    var solved = Solver.solve(currentNotes, TrombonePositions.positionOptionsForNote, customWeights());
-    customPanel.positions = solved.positions;
-    customPanel.slide.setPosition(customPanel.positions[0]);
+    customPanel.positions = solvePositions(currentNotes, customWeights());
+    customPanel.slide.setPosition(firstRealPosition(customPanel.positions));
     customPanel.positionList.setNumbers(customPanel.positions, layout.noteX);
     customPanel.positionList.setScrollOffset(staffScroll.scrollLeft);
   }
@@ -733,13 +785,21 @@
 
     for (var i = 0; i < currentNotes.length; i++) {
       var noteMs = Math.round(quarterMs * (currentDurations[i] / QUARTER_NOTE));
+      staffHandle.highlightNote(i);
+      scrollStaffToNote(i);
+
+      // A rest has nowhere to move the slide to and nothing to play --
+      // just silent waiting for its own duration, no slide-move phase.
+      if (currentNotes[i] === null) {
+        await sleep(noteMs);
+        continue;
+      }
+
       var slideMs = Math.round(noteMs * 0.35);
       panels.forEach(function (panel) {
         panel.slide.setPosition(panel.positions[i]);
         panel.positionList.highlightNote(i);
       });
-      staffHandle.highlightNote(i);
-      scrollStaffToNote(i);
       await sleep(slideMs);
       playTone(MusicTheory.frequency(currentNotes[i]), noteMs - slideMs);
       await sleep(noteMs - slideMs);
@@ -749,7 +809,7 @@
     staffScroll.scrollLeft = 0;
     staffHandle.highlightNote(-1);
     panels.forEach(function (panel) {
-      panel.slide.setPosition(panel.positions[0]);
+      panel.slide.setPosition(firstRealPosition(panel.positions));
       panel.positionList.highlightNote(-1);
     });
     playing = false;

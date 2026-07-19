@@ -189,10 +189,14 @@
   // in effect (and needs re-cancelling with its own mark) until
   // something actually writes a different accidental for that same
   // pitch, however much later that is. Returns one entry per input
-  // note: the accidental to show, or null if nothing needs drawing.
+  // note: the accidental to show, or null if nothing needs drawing (a
+  // rest -- represented as null, same as everywhere else in this app --
+  // trivially needs no mark, and doesn't disturb the running state for
+  // the pitches around it).
   function accidentalsToDisplay(notes, keySig) {
     var displayed = {};
     return notes.map(function (n) {
+      if (n === null) return null;
       var key = n.letter + n.octave;
       if (!(key in displayed)) {
         displayed[key] = keySignatureAccidentalForLetter(keySig, n.letter);

@@ -73,13 +73,39 @@ function names(notes) { return notes.map(MusicTheory.noteName); }
     "C,, C, C c c': one octave apart each, plain uppercase C is C4");
 })();
 
-// ---- Rests are skipped (not represented as notes), and durations for
-// the surrounding notes are unaffected. ---------------------------------
+// ---- Rests come back as null (a real, timed gap), not skipped --
+// durations for the rest itself and its surrounding notes are all
+// preserved, so playback/staff spacing can see the actual silence. -----
 (function () {
   var abc = "X:1\nL:1/4\nK:C\nC z C2 |]\n";
   var result = AbcImport.parseAbcMelody(abc);
-  assertEqual(names(result.notes), ["C4", "C4"], "a rest is skipped, leaving only the real notes");
-  assertEqual(result.durations, [0.25, 0.5], "the notes around a skipped rest keep their own real durations");
+  assertEqual(result.notes.map(function (n) { return n === null ? null : MusicTheory.noteName(n); }),
+    ["C4", null, "C4"], "a rest comes back as null, in place, not omitted");
+  assertEqual(result.durations, [0.25, 0.25, 0.5], "the rest keeps its own real duration alongside the notes");
+})();
+
+// ---- Multi-measure rests (Z/X) get their duration resolved against
+// the tune's own time signature (by abcjs), not left as a bare measure
+// count -- and the invisible variants (x/X) behave identically to
+// their visible counterparts (z/Z) for our purposes, since this app
+// only cares about the timed gap, not whether a rest glyph is drawn. ---
+(function () {
+  var abc = "X:1\nL:1/8\nM:4/4\nK:C\nC z2 C x2 C |\nC Z2 C X2 C |\n";
+  var result = AbcImport.parseAbcMelody(abc);
+  assertEqual(result.notes.map(function (n) { return n === null; }),
+    [false, true, false, true, false, false, true, false, true, false],
+    "z, x, Z, and X all come back as null in the same way");
+  assertEqual(result.durations, [0.125, 0.25, 0.125, 0.25, 0.125, 0.125, 2, 0.125, 2, 0.125],
+    "a multi-measure rest's duration (Z2/X2 in 4/4 = 2 whole measures = 2.0) is resolved for us");
+})();
+
+// ---- A tune that's nothing but rests still fails to parse -- there's
+// no melody to play regardless of how much silence surrounds it. ------
+(function () {
+  var abc = "X:1\nL:1/4\nK:C\nz z z |]\n";
+  assert((function () {
+    try { AbcImport.parseAbcMelody(abc); return false; } catch (e) { return true; }
+  })(), "an all-rest tune throws, rather than silently accepting zero real notes");
 })();
 
 // ---- A tune with an explicit line break part-way through a bar still

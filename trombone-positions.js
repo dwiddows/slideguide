@@ -83,10 +83,32 @@
     return positionOptionsForSemitone(MusicTheory.absoluteSemitone(note));
   }
 
+  // The natural harmonic series itself -- partials 1..maxPartial over
+  // the horn's own pedal B♭ (position 1, no slide movement at all),
+  // the thing every position's own series (above) is a semitone-shifted
+  // copy of. Diatonic letter offsets per partial (fixed, not derived --
+  // this is just how the series is conventionally spelled: the 7th
+  // partial is written A♭, never G♯) are passed to transposeNote
+  // alongside the semitone interval, the same two-part mechanism this
+  // app uses everywhere else to keep note spelling correct.
+  var PEDAL_BB = { letter: "B", accidental: -1, octave: 1 };
+  var PARTIAL_LETTER_OFFSET = { 1: 0, 2: 7, 3: 11, 4: 14, 5: 16, 6: 18, 7: 20, 8: 21, 9: 23 };
+
+  function naturalHarmonicSeries(maxPartial) {
+    var series = [];
+    for (var partial = 1; partial <= maxPartial; partial++) {
+      var semitoneOffset = partial === 1 ? 0 : PARTIAL_INTERVAL[partial];
+      var note = MusicTheory.transposeNote(PEDAL_BB, semitoneOffset, PARTIAL_LETTER_OFFSET[partial]);
+      series.push({ partial: partial, note: note, approximate: !!APPROXIMATE_PARTIALS[partial] });
+    }
+    return series;
+  }
+
   return {
     MAX_POSITION: MAX_POSITION,
     fundamentalSemitone: fundamentalSemitone,
     positionOptionsForSemitone: positionOptionsForSemitone,
-    positionOptionsForNote: positionOptionsForNote
+    positionOptionsForNote: positionOptionsForNote,
+    naturalHarmonicSeries: naturalHarmonicSeries
   };
 });

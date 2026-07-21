@@ -55,3 +55,18 @@ explicit-accidental-holds-till-the-barline) and per-note durations.
 etc.) -- around 200 assertions covering the theory engine, the harmonic
 position model, the solver (including brute-force verification against the
 DP), and the ABC bridge.
+
+**The harmonic series and the bell (`theory.html`).** A companion page
+demonstrating the physics behind the position model: the pedal-to-high-B♭
+natural harmonic series on a staff, an animated standing wave in a plain
+tube, and (`pipe-bell.js`/`horn-equation.js`) a numerical solution of the
+Webster horn equation showing how a flared bell pulls the even harmonics
+back into a tube that would otherwise, closed at one end, only resonate
+at odd multiples of its fundamental.
+
+## References
+
+- Braden, A. (2006). [Bore Optimisation and Impedance Modelling of Brass
+  Musical Instruments](https://www.acoustics.ed.ac.uk/wp-content/uploads/Theses/Braden_Alistair__PhDThesis_UniversityOfEdinburgh_2006.pdf)
+  (PhD thesis, University of Edinburgh) -- real brass bells fit to the
+  same Bessel-horn family `pipe-bell.js` uses schematically.

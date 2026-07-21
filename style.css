@@ -110,6 +110,33 @@
        zero point. */
     margin-left: -4px;
   }
+  .pipe-wrap {
+    width: 100%;
+    max-width: 900px;
+    margin: 6px 0 22px;
+  }
+  .pipe-label {
+    max-width: 900px;
+    margin: 0 0 4px;
+    font-size: 0.9em;
+    color: var(--brass-dim);
+  }
+  .pipe-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  /* Same alignment idea as .position-list (a row of SVG-text labels
+     sharing the staff's own noteX coordinates), but for a container
+     that doesn't sit inside .panel-body -- so it needs none of that
+     class's -4px compensation for padding it doesn't have. */
+  .number-row {
+    width: 100%;
+    overflow: hidden;
+    height: 24px;
+    position: relative;
+    margin-bottom: 0;
+  }
   .position-list-svg {
     display: block;
   }

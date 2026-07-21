@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlideGuide: The Harmonic Series</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>The Harmonic Series</h1>
+
+<div class="stage">
+  <p><a href="index.html">&larr; Trombone Positions Calculator</a></p>
+
+  <p>Lips can buzz at pretty much any frequency, but a tube of a fixed length only supports
+  standing waves at particular frequencies -- its harmonic series. Leave the trombone slide all
+  the way in and buzz harder, and the note jumps from one partial of that series to the next:
+  pedal B&flat;, then B&flat;, F, B&flat;, D, F, A&flat; (a well-known flat one, not quite in
+  tune), then B&flat; again, an octave and a half above where it started.</p>
+
+  <p class="pipe-label">A plain tube: each partial fits n loops between two ends.</p>
+  <div class="pipe-wrap" id="pipe"></div>
+
+  <p class="pipe-label">A tube that flares into a bell at the open end: the same n loops, but
+  reshaped -- compressed near the narrow throat, stretched out near the bell.</p>
+  <div class="pipe-wrap" id="pipe-bell"></div>
+
+  <div class="staff-scroll" id="staff-scroll">
+    <svg id="staff-svg"></svg>
+  </div>
+  <div id="partial-numbers"></div>
+
+  <div class="playback-row">
+    <button id="play-btn">&#9654; Play</button>
+  </div>
+</div>
+
+<script src="music-theory.js"></script>
+<script src="trombone-positions.js"></script>
+<script src="staff-view.js"></script>
+<script src="pipe.js"></script>
+<script src="horn-equation.js"></script>
+<script src="pipe-bell.js"></script>
+<script src="theory.js"></script>
+</body>
+</html>

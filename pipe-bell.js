@@ -57,7 +57,11 @@
 
     var midY = height / 2;
     var left = margin;
-    var right = width - margin;
+    // lengthFraction < 1 draws a shorter tube within the same fixed
+    // canvas (a longer slide position uses more of it) -- one fixed
+    // viewBox throughout, so nothing else has to be recomputed.
+    var lengthFraction = opts.lengthFraction != null ? opts.lengthFraction : 1;
+    var right = left + lengthFraction * (width - margin - left);
     var maxRadiusPx = height / 2 - margin;
     var drawScale = maxRadiusPx / profile.radius(profile.length); // bell mouth just fits
 
@@ -116,6 +120,24 @@
     svg.appendChild(el("path", { d: topD, fill: "none", stroke: "var(--brass-dim)", "stroke-width": wallStrokeWidth }));
     svg.appendChild(el("path", { d: bottomD, fill: "none", stroke: "var(--brass-dim)", "stroke-width": wallStrokeWidth }));
 
+    // A schematic top lip and bottom lip, just to the left of the tube
+    // (no mouthpiece drawn, just the two circles) -- the same pressure
+    // value already driving the first band, given a literal shape too:
+    // pulled apart when that pressure is driving air through, pressed
+    // together at the instant it's momentarily cut off. Colored like
+    // lips, not like the heatmap -- the motion alone already carries
+    // the open/closed information, so the color doesn't need to repeat it.
+    var LIP_COLOR = "#a05244";
+    var lipX = left - 12;
+    var lipRadius = 6;
+    var lipRestGap = 5;   // half-gap when at rest (harmonic === null)
+    var lipMinGap = 1;    // never fully cross, even at the most "closed" instant
+    var lipGapAmplitude = 8;
+    var lipTop = el("circle", { cx: lipX, cy: midY - lipRestGap, r: lipRadius, fill: LIP_COLOR });
+    var lipBottom = el("circle", { cx: lipX, cy: midY + lipRestGap, r: lipRadius, fill: LIP_COLOR });
+    svg.appendChild(lipTop);
+    svg.appendChild(lipBottom);
+
     var harmonic = null;
     var phase = 0;
     var lastT = null;
@@ -139,6 +161,12 @@
         d += (b === 0 ? "M " : "L ") + x + " " + y + " ";
       }
       wave.setAttribute("d", d);
+
+      var lipValue = shape ? shape[0] * Math.cos(phase) : 0;
+      var lipGap = Math.max(lipMinGap, lipRestGap + lipValue * lipGapAmplitude);
+      lipTop.setAttribute("cy", midY - lipGap);
+      lipBottom.setAttribute("cy", midY + lipGap);
+
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

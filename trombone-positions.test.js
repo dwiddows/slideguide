@@ -55,5 +55,31 @@ function assertEqual(actual, expected, message) {
   });
 })();
 
+// ---- naturalHarmonicSeries(maxPartial, position): every position's
+// own series, matching the fundamentals in index.html's own table. ------
+(function () {
+  var expected = {
+    2: ["A1", "A2", "E3", "A3", "C♯4", "E4", "G4", "A4"],
+    4: ["G1", "G2", "D3", "G3", "B3", "D4", "F4", "G4"],
+    7: ["E1", "E2", "B2", "E3", "G♯3", "B3", "D4", "E4"]
+  };
+  Object.keys(expected).forEach(function (position) {
+    var series = TrombonePositions.naturalHarmonicSeries(8, Number(position));
+    assertEqual(series.map(function (h) { return MusicTheory.noteName(h.note); }), expected[position],
+      "position " + position + "'s own natural harmonic series, correctly spelled");
+  });
+})();
+
+// ---- relativeTubeLength: position 1 is the reference length; each
+// position down is a semitone longer, so position 7 (a tritone's worth
+// of positions) is 2^(6/12) -- about 41% longer -- not a position-count
+// multiple or anything simpler. ------------------------------------------
+(function () {
+  assertEqual(TrombonePositions.relativeTubeLength(1), 1, "position 1 is the reference length");
+  var p7 = TrombonePositions.relativeTubeLength(7);
+  assert(Math.abs(p7 - Math.pow(2, 0.5)) < 1e-9,
+    "position 7 is 2^(6/12) times position 1's length (got " + p7.toFixed(4) + ")");
+})();
+
 console.log(passes + " passed, " + failures + " failed");
 process.exit(failures > 0 ? 1 : 0);

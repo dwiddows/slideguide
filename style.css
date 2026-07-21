@@ -304,12 +304,15 @@
     gap: 24px;
     flex-wrap: wrap;
   }
-  .tempo-entry {
+  .tempo-entry, .position-entry {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-  .tempo-entry label {
+  .position-entry {
+    margin: 4px 0 18px;
+  }
+  .tempo-entry label, .position-entry label {
     color: var(--brass-bright);
     font-size: 0.95em;
     white-space: nowrap;

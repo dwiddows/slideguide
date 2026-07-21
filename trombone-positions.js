@@ -83,25 +83,50 @@
     return positionOptionsForSemitone(MusicTheory.absoluteSemitone(note));
   }
 
-  // The natural harmonic series itself -- partials 1..maxPartial over
-  // the horn's own pedal B♭ (position 1, no slide movement at all),
-  // the thing every position's own series (above) is a semitone-shifted
-  // copy of. Diatonic letter offsets per partial (fixed, not derived --
+  // Each position's own fundamental, spelled the conventional way (the
+  // same names as the How It Works table in index.html) -- chromatic
+  // descent by a single semitone doesn't have one universally-correct
+  // letter to move to, so these are the standard names, not derived.
+  var POSITION_FUNDAMENTALS = [
+    { letter: "B", accidental: -1, octave: 1 }, // 1: B♭
+    { letter: "A", accidental: 0, octave: 1 },  // 2: A
+    { letter: "A", accidental: -1, octave: 1 }, // 3: A♭
+    { letter: "G", accidental: 0, octave: 1 },  // 4: G
+    { letter: "G", accidental: -1, octave: 1 }, // 5: G♭
+    { letter: "F", accidental: 0, octave: 1 },  // 6: F
+    { letter: "E", accidental: 0, octave: 1 }   // 7: E
+  ];
+
+  // The natural harmonic series itself -- partials 1..maxPartial over a
+  // given position's own fundamental (position 1's pedal B♭ by
+  // default). Diatonic letter offsets per partial (fixed, not derived --
   // this is just how the series is conventionally spelled: the 7th
   // partial is written A♭, never G♯) are passed to transposeNote
   // alongside the semitone interval, the same two-part mechanism this
-  // app uses everywhere else to keep note spelling correct.
-  var PEDAL_BB = { letter: "B", accidental: -1, octave: 1 };
+  // app uses everywhere else to keep note spelling correct -- and it
+  // works unchanged for any of the 7 fundamentals above, since the
+  // pattern of intervals above a fundamental is the same regardless of
+  // which pitch that fundamental itself is.
   var PARTIAL_LETTER_OFFSET = { 1: 0, 2: 7, 3: 11, 4: 14, 5: 16, 6: 18, 7: 20, 8: 21, 9: 23 };
 
-  function naturalHarmonicSeries(maxPartial) {
+  function naturalHarmonicSeries(maxPartial, position) {
+    var fundamental = POSITION_FUNDAMENTALS[(position || 1) - 1];
     var series = [];
     for (var partial = 1; partial <= maxPartial; partial++) {
       var semitoneOffset = partial === 1 ? 0 : PARTIAL_INTERVAL[partial];
-      var note = MusicTheory.transposeNote(PEDAL_BB, semitoneOffset, PARTIAL_LETTER_OFFSET[partial]);
+      var note = MusicTheory.transposeNote(fundamental, semitoneOffset, PARTIAL_LETTER_OFFSET[partial]);
       series.push({ partial: partial, note: note, approximate: !!APPROXIMATE_PARTIALS[partial] });
     }
     return series;
+  }
+
+  // How much longer the tube is at this position than at position 1 --
+  // each position down is one semitone lower, and length is inversely
+  // proportional to frequency, so it grows by the 12-TET semitone ratio
+  // per position (position 7, the full slide extension, is about 41%
+  // longer than position 1 -- a tritone's worth of semitones).
+  function relativeTubeLength(position) {
+    return Math.pow(2, (position - 1) / 12);
   }
 
   return {
@@ -109,6 +134,7 @@
     fundamentalSemitone: fundamentalSemitone,
     positionOptionsForSemitone: positionOptionsForSemitone,
     positionOptionsForNote: positionOptionsForNote,
-    naturalHarmonicSeries: naturalHarmonicSeries
+    naturalHarmonicSeries: naturalHarmonicSeries,
+    relativeTubeLength: relativeTubeLength
   };
 });

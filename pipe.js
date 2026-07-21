@@ -52,7 +52,11 @@
     var top = midY - wallGap / 2;
     var bottom = midY + wallGap / 2;
     var left = margin;
-    var right = width - margin;
+    // lengthFraction < 1 draws a shorter tube within the same fixed
+    // canvas (a longer slide position uses more of it) -- one fixed
+    // viewBox throughout, so nothing else has to be recomputed.
+    var lengthFraction = opts.lengthFraction != null ? opts.lengthFraction : 1;
+    var right = left + lengthFraction * (width - margin - left);
     var amplitude = wallGap / 2 - 6; // stay clear of the walls themselves
 
     var wallStrokeWidth = opts.wallStrokeWidth || 6;

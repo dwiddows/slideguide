@@ -8,7 +8,10 @@
  * Deliberately has no dependency on music-theory.js or any of this
  * project's pitch code -- it only ever needs to be told which
  * whole-number harmonic to draw, nothing else, so it's reusable
- * anywhere a standing wave needs showing.
+ * anywhere a standing wave needs showing. (That's also why this keeps
+ * its own tiny `el` helper rather than requiring staff-view.js for it --
+ * staff-view.js's own factory pulls in music-theory.js, which would
+ * quietly reintroduce exactly the dependency this file avoids.)
  */
 (function (root, factory) {
   if (typeof module !== "undefined" && module.exports) {
@@ -70,28 +73,32 @@
     var wave = el("path", { fill: "none", stroke: "#2ecc71", "stroke-width": 2.5 });
     svg.appendChild(wave);
 
+    var POINTS = 120;
+    // x never changes after construction, and the envelope only changes
+    // on setHarmonic (a rare user action) -- both cached here rather
+    // than recomputed for all 121 points on every one of the ~60
+    // frames/sec this animates at.
+    var pointX = [];
+    for (var p = 0; p <= POINTS; p++) pointX.push(left + (p / POINTS) * (right - left));
+    var envelope = pointX.map(function () { return 0; });
+
     var harmonic = null;
     var phase = 0;
     var lastT = null;
-    var POINTS = 120;
+    var running = true;
 
     function frame(t) {
+      if (!running) return;
       if (lastT === null) lastT = t;
       var dt = (t - lastT) / 1000;
       lastT = t;
       if (harmonic) phase += speed * harmonic * dt;
 
+      var cosPhase = Math.cos(phase);
       var d = "";
       for (var i = 0; i <= POINTS; i++) {
-        var frac = i / POINTS;
-        var x = left + frac * (right - left);
-        // n loops across the tube's length: n half-cycles of a sine
-        // envelope, each one swinging between + and -amplitude in
-        // time together (cos(phase)) rather than travelling along the
-        // tube -- a standing wave, not a travelling one.
-        var envelope = harmonic ? Math.sin(harmonic * Math.PI * frac) : 0;
-        var y = midY - envelope * amplitude * Math.cos(phase);
-        d += (i === 0 ? "M " : "L ") + x + " " + y + " ";
+        var y = midY - envelope[i] * amplitude * cosPhase;
+        d += (i === 0 ? "M " : "L ") + pointX[i] + " " + y + " ";
       }
       wave.setAttribute("d", d);
       requestAnimationFrame(frame);
@@ -100,9 +107,25 @@
 
     function setHarmonic(n) {
       harmonic = n;
+      // n loops across the tube's length: n half-cycles of a sine
+      // envelope, each one swinging between + and -amplitude in time
+      // together (cos(phase) above) rather than travelling along the
+      // tube -- a standing wave, not a travelling one.
+      envelope = pointX.map(function (x, i) {
+        return harmonic ? Math.sin(harmonic * Math.PI * (i / POINTS)) : 0;
+      });
     }
 
-    return { setHarmonic: setHarmonic };
+    // Stops the animation loop for good -- without this, replacing a
+    // makePipe instance (e.g. on a slide-position change) just drops the
+    // caller's own reference while the pending requestAnimationFrame
+    // callback keeps rescheduling itself forever, keeping the detached
+    // SVG alive indefinitely.
+    function stop() {
+      running = false;
+    }
+
+    return { setHarmonic: setHarmonic, stop: stop };
   }
 
   return { makePipe: makePipe };

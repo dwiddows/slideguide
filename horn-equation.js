@@ -71,13 +71,20 @@
   // Scans k upward from ~0 and returns the first maxModes values where
   // the open end's boundary condition (p=0) is satisfied -- the tube's
   // resonances, in ascending order (index 0 is the fundamental/partial 1).
+  // Defaults are deliberately coarse: the scan only needs a correct sign
+  // to bracket each root (refineRoot's own bisection is what actually
+  // homes in on it), so resolving every candidate k to page-load-blocking
+  // precision here is wasted work -- these defaults match a found root to
+  // within ~0.005 of the much finer (steps=1500, scanStep=0.004) result,
+  // at roughly 1/10th the cost. Pass steps/scanStep explicitly for a
+  // one-off higher-precision answer if a caller ever needs one.
   function findModes(logAreaSlope, opts) {
     opts = opts || {};
     var length = opts.length || 1;
-    var steps = opts.steps || 1500;
+    var steps = opts.steps || 300;
     var maxModes = opts.maxModes || 8;
     var kMax = opts.kMax || maxModes * Math.PI + 3;
-    var scanStep = opts.scanStep || 0.004;
+    var scanStep = opts.scanStep || 0.01;
 
     var roots = [];
     var prevK = 1e-6;
@@ -137,9 +144,10 @@
   // only a short RAPID flare right at the rim -- three stages, not two.
   // Found by numerical search (not measured, not hand-picked) for
   // parameters that pull compoundBellProfile's single-flare ladder
-  // (drifting a full partial away from integers by partial 8) back to
-  // within about 0.08 of a clean 1..8 ladder -- see the README. Radius
-  // is continuous at both joins (no jump), same as compoundBellProfile.
+  // (drifting a full partial away from integers by partial 8) back
+  // toward a clean 1..8 ladder -- see the README and DEFAULT_BELL_PROFILE
+  // below for how close. Radius is continuous at both joins (no jump),
+  // same as compoundBellProfile.
   function threeSegmentBellProfile(opts) {
     opts = opts || {};
     var length = opts.length || 1;
@@ -165,12 +173,40 @@
     return { radius: radius, logAreaSlope: logAreaSlope, length: length };
   }
 
+  // The one numerically-found parameter set pipe-bell.js, theory.js, and
+  // horn-equation.test.js all share -- fit JOINTLY across slide positions
+  // 1-7 (not position 1 alone, which fits tighter, ~0.08, but degrades to
+  // ~2 full partials of drift by position 7), keeping every position's
+  // ladder within roughly 0.1-0.5 of a clean integer series instead. See
+  // the README for how this was found.
+  var DEFAULT_BELL_PROFILE = {
+    x1: 0.1311, x2: 0.7776,
+    taperPower: 1.1752, flarePower: 4.8895,
+    taperRatio: 3.3279, bellRatio: 10.7865
+  };
+
+  // x1/x2 as fractions of a tube tubeLength times as long as the
+  // reference (position 1) length those two were fit at: the bell
+  // itself -- everything from refX1 onward, in reference-length units --
+  // doesn't grow when the slide extends, only the cylindrical section
+  // does, so both fractions shrink as the tube (and only the tube) grows.
+  function bellBoundariesForTubeLength(tubeLength, refX1, refX2) {
+    var bellAbsoluteLength = 1 - refX1;
+    var rapidFlareAbsoluteLength = 1 - refX2;
+    return {
+      x1: 1 - bellAbsoluteLength / tubeLength,
+      x2: 1 - rapidFlareAbsoluteLength / tubeLength
+    };
+  }
+
   return {
     integrate: integrate,
     endValue: endValue,
     findModes: findModes,
     modeShape: modeShape,
     compoundBellProfile: compoundBellProfile,
-    threeSegmentBellProfile: threeSegmentBellProfile
+    threeSegmentBellProfile: threeSegmentBellProfile,
+    DEFAULT_BELL_PROFILE: DEFAULT_BELL_PROFILE,
+    bellBoundariesForTubeLength: bellBoundariesForTubeLength
   };
 });

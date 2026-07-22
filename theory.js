@@ -18,15 +18,6 @@
   var sleep = StaffView.sleep;
 
   var MAX_PARTIAL = 8;
-  // The bell itself (taper + rapid flare) doesn't grow when you extend
-  // the slide -- only the cylindrical section does -- so both absolute
-  // lengths below (in position-1 length units, where the whole tube is
-  // 1) stay fixed across positions; only their FRACTION of the current,
-  // possibly-longer tube shrinks. Values are pipe-bell.js's own default
-  // x1/x2 (0.1311, 0.7776), decomposed into "bell starts here" and
-  // "rapid flare starts here" distances from the open end.
-  var BELL_ABSOLUTE_LENGTH = 1 - 0.1311;
-  var RAPID_FLARE_ABSOLUTE_LENGTH = 1 - 0.7776;
 
   var staffSvg = document.getElementById("staff-svg");
   var numberRowContainer = document.getElementById("partial-numbers");
@@ -40,6 +31,7 @@
 
   var series, staffHandle, numberRow, pipe, bellPipe;
   var impedanceMarker = null;
+  var markerXScale = null;
   var playing = false;
   var NOTE_MS = 2200;
 
@@ -77,38 +69,36 @@
     });
     impedanceSvg.appendChild(impedanceMarker);
 
-    // Store the mapping so updateFrequency (called far more often, on
-    // every slider drag) doesn't need to rebuild the whole curve just
-    // to move the marker.
-    drawImpedanceCurve.markerX = x;
+    // Stored so updateDisplay (called far more often, on every slider
+    // drag) doesn't need to rebuild the whole curve just to move the marker.
+    markerXScale = x;
   }
 
-  function moveMarker(realRatio) {
-    if (!impedanceMarker) return;
-    var xPos = drawImpedanceCurve.markerX(realRatio);
-    impedanceMarker.setAttribute("x1", xPos);
-    impedanceMarker.setAttribute("x2", xPos);
-  }
-
-  // The slider's own units are a partial NUMBER (possibly fractional --
-  // interpolated between two real resonances), not a frequency ratio --
-  // "2" means exactly the same k as setHarmonic(2), not literally 2x the
-  // fundamental (the ladder isn't evenly spaced; see pipe-bell.js). The
-  // readout shows both, since that gap IS the point being demonstrated.
-  function setFreqLabel(label, realRatio) {
+  // Moves the slider itself, its numeric readout, and the impedance-graph
+  // marker -- shared by both updateSliderDisplay (display-only, used
+  // while playAll drives the bell diagram directly via setHarmonic) and
+  // applyFrequency (which also drives the bell diagram, for a direct
+  // slider drag). The slider's own units are a partial NUMBER (possibly
+  // fractional -- interpolated between two real resonances), not a
+  // frequency ratio -- "2" means exactly the same k as setHarmonic(2),
+  // not literally 2x the fundamental (the ladder isn't evenly spaced;
+  // see pipe-bell.js). The readout shows both, since that gap IS the
+  // point being demonstrated.
+  function updateDisplay(label, realRatio) {
     freqSlider.value = Math.round(label * 100);
     freqValue.textContent = "partial " + label.toFixed(2) + " → " + realRatio.toFixed(2) + "× the fundamental";
+    if (impedanceMarker) {
+      var xPos = markerXScale(realRatio);
+      impedanceMarker.setAttribute("x1", xPos);
+      impedanceMarker.setAttribute("x2", xPos);
+    }
   }
 
-  // Display-only: moves the slider itself, its numeric readout, and the
-  // impedance-graph marker, without touching the bell diagram or audio --
-  // what playAll uses to keep the slider in sync while it's actually
-  // driving the bell diagram via the exact (not approximated) resonance
-  // shapes through setHarmonic instead.
+  // Display-only: used by playAll to keep the slider in sync while it's
+  // actually driving the bell diagram via the exact (not approximated)
+  // resonance shapes through setHarmonic instead.
   function updateSliderDisplay(label) {
-    var realRatio = bellPipe.ratioForLabel(label);
-    setFreqLabel(label, realRatio);
-    moveMarker(realRatio);
+    updateDisplay(label, bellPipe.ratioForLabel(label));
   }
 
   // Used when the user drags the slider directly -- this actually
@@ -117,8 +107,7 @@
   // the caller to use for audio pitch.
   function applyFrequency(label) {
     var realRatio = bellPipe.setFrequency(label);
-    setFreqLabel(label, realRatio);
-    moveMarker(realRatio);
+    updateDisplay(label, realRatio);
     return realRatio;
   }
 
@@ -208,15 +197,22 @@
     var tubeLength = TrombonePositions.relativeTubeLength(position);
     var maxTubeLength = TrombonePositions.relativeTubeLength(TrombonePositions.MAX_POSITION);
     var lengthFraction = tubeLength / maxTubeLength;
-    var x1 = 1 - BELL_ABSOLUTE_LENGTH / tubeLength;
-    var x2 = 1 - RAPID_FLARE_ABSOLUTE_LENGTH / tubeLength;
+    var defaultProfile = HornEquation.DEFAULT_BELL_PROFILE;
+    var bounds = HornEquation.bellBoundariesForTubeLength(tubeLength, defaultProfile.x1, defaultProfile.x2);
+
+    // Old instances' animation loops don't stop just because these
+    // variables get reassigned -- their own requestAnimationFrame
+    // callbacks would otherwise keep rescheduling themselves forever on
+    // an now-detached SVG.
+    if (pipe) pipe.stop();
+    if (bellPipe) bellPipe.stop();
 
     pipeContainer.innerHTML = "";
     pipe = Pipe.makePipe(pipeContainer, { width: 800, height: 120, lengthFraction: lengthFraction });
 
     bellPipeContainer.innerHTML = "";
     bellPipe = PipeBell.makeBellPipe(bellPipeContainer, {
-      width: 800, height: 160, lengthFraction: lengthFraction, x1: x1, x2: x2
+      width: 800, height: 160, lengthFraction: lengthFraction, x1: bounds.x1, x2: bounds.x2
     });
 
     // This position's bore has its own actual resonances (see the

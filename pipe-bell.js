@@ -9,27 +9,47 @@
  * restoring missing harmonics in the abstract.
  *
  * Played pitch is intentionally NOT tied to this module's own computed
- * frequencies (see horn-equation.js's docstring) -- setHarmonic(n) only
- * selects which precomputed mode SHAPE to animate. setFrequency(label)
- * is the same idea generalized to any partial NUMBER at all, including
- * fractional ones in between -- interpolated over the bore's own real
- * (unevenly-spaced) resonance ladder, not a naive multiple of the
- * fundamental, so it agrees exactly with setHarmonic at every integer.
+ * frequencies (see theory.js, which plays MusicTheory's idealized notes
+ * instead) -- setHarmonic(n) only selects which precomputed mode SHAPE
+ * to animate. setFrequency(label) is the same idea generalized to any
+ * partial NUMBER at all, including fractional ones in between --
+ * interpolated over the bore's own real (unevenly-spaced) resonance
+ * ladder, not a naive multiple of the fundamental, so it agrees exactly
+ * with setHarmonic at every integer.
  */
 (function (root, factory) {
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = factory(require("./horn-equation.js"));
+    module.exports = factory(require("./horn-equation.js"), require("./staff-view.js"));
   } else {
-    root.PipeBell = factory(root.HornEquation);
+    root.PipeBell = factory(root.HornEquation, root.StaffView);
   }
-})(typeof self !== "undefined" ? self : this, function (HornEquation) {
+})(typeof self !== "undefined" ? self : this, function (HornEquation, StaffView) {
   "use strict";
 
-  var NS = "http://www.w3.org/2000/svg";
-  function el(tag, attrs) {
-    var e = document.createElementNS(NS, tag);
-    for (var k in attrs) e.setAttribute(k, attrs[k]);
-    return e;
+  var el = StaffView.el;
+
+  // Pressure is longitudinal (air moves along the tube's own axis, not
+  // across it) -- a squiggly line drawn crosswise, however standard as
+  // a teaching picture, is a graph laid over the tube, not a picture of
+  // anything actually happening inside it. Painting the true interior
+  // with color -- warm for compression, cool for rarefaction, dark at a
+  // node -- reads as what's physically there instead, and it can never
+  // visually escape the walls, since it's bounded by them by construction.
+  var PRESSURE_NEUTRAL = [26, 22, 14];
+  var PRESSURE_HOT = [255, 59, 48];   // compression
+  var PRESSURE_COLD = [56, 189, 248]; // rarefaction
+  function pressureColor(v) {
+    var t = Math.min(1, Math.abs(v));
+    var target = v >= 0 ? PRESSURE_HOT : PRESSURE_COLD;
+    var r = Math.round(PRESSURE_NEUTRAL[0] + (target[0] - PRESSURE_NEUTRAL[0]) * t);
+    var g = Math.round(PRESSURE_NEUTRAL[1] + (target[1] - PRESSURE_NEUTRAL[1]) * t);
+    var b = Math.round(PRESSURE_NEUTRAL[2] + (target[2] - PRESSURE_NEUTRAL[2]) * t);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+  function normalize(samples) {
+    var peak = Math.max.apply(null, samples.map(function (s) { return Math.abs(s.p); }));
+    return samples.map(function (s) { return peak > 1e-6 ? s.p / peak : 0; });
   }
 
   function makeBellPipe(container, opts) {
@@ -50,13 +70,14 @@
     // the same tradeoff real horn design faces. x1/x2 are overridable
     // per slide position (the bell itself doesn't change size when you
     // extend the slide; only the cylindrical section does -- theory.js).
+    var defaults = HornEquation.DEFAULT_BELL_PROFILE;
     var profile = HornEquation.threeSegmentBellProfile({
-      x1: opts.x1 != null ? opts.x1 : 0.1311,
-      x2: opts.x2 != null ? opts.x2 : 0.7776,
-      taperPower: opts.taperPower || 1.1752,
-      flarePower: opts.flarePower || 4.8895,
-      taperRatio: opts.taperRatio || 3.3279,
-      bellRatio: opts.bellRatio || 10.7865
+      x1: opts.x1 != null ? opts.x1 : defaults.x1,
+      x2: opts.x2 != null ? opts.x2 : defaults.x2,
+      taperPower: opts.taperPower || defaults.taperPower,
+      flarePower: opts.flarePower || defaults.flarePower,
+      taperRatio: opts.taperRatio || defaults.taperRatio,
+      bellRatio: opts.bellRatio || defaults.bellRatio
     });
     var modeK = HornEquation.findModes(profile.logAreaSlope, { maxModes: maxModes });
     var POINTS = 140;
@@ -82,27 +103,14 @@
 
     function toPx(fracX) { return left + fracX * (right - left); }
 
-    // Pressure is longitudinal (air moves along the tube's own axis, not
-    // across it) -- a squiggly line drawn crosswise, however standard as
-    // a teaching picture, is a graph laid over the tube, not a picture of
-    // anything actually happening inside it. Painting the true interior
-    // with color -- warm for compression, cool for rarefaction, dark at a
-    // node -- reads as what's physically there instead, and it can never
-    // visually escape the walls, since it's bounded by them by construction.
-    function pressureColor(v) {
-      var neutral = [26, 22, 14];
-      var hot = [255, 59, 48];   // compression
-      var cold = [56, 189, 248]; // rarefaction
-      var t = Math.min(1, Math.abs(v));
-      var target = v >= 0 ? hot : cold;
-      var rgb = neutral.map(function (c, i) { return Math.round(c + (target[i] - c) * t); });
-      return "rgb(" + rgb.join(",") + ")";
-    }
-
-    // One band per sample interval, its height following the tube's own
-    // local radius -- geometry is fixed at construction; only each
-    // band's fill color changes per animation frame.
+    // One band per sample interval, its x/width/localAmplitude all fixed
+    // at construction (only fill color and the wave line's y change per
+    // animation frame) -- computed once here rather than recomputed from
+    // profile.radius (a handful of Math.pow calls) on every one of the
+    // ~60 frames/sec this animates at.
     var bands = [];
+    var bandX = [];
+    var bandLocalAmplitude = [];
     for (var i = 0; i < POINTS; i++) {
       var fracL = i / POINTS, fracR = (i + 1) / POINTS;
       var xL = toPx(fracL), xR = toPx(fracR);
@@ -110,6 +118,10 @@
       var rect = el("rect", { x: xL, y: midY - r, width: (xR - xL) + 0.5, height: r * 2, fill: pressureColor(0) });
       svg.appendChild(rect);
       bands.push(rect);
+
+      var frac = (i + 0.5) / POINTS;
+      bandX.push(toPx(frac));
+      bandLocalAmplitude.push(profile.radius(frac * profile.length) * drawScale * 0.7);
     }
 
     // Tube walls drawn on top of the color fill, sampled outline
@@ -117,11 +129,11 @@
     var wallStrokeWidth = opts.wallStrokeWidth || 6;
     var topD = "", bottomD = "";
     for (var j = 0; j <= POINTS; j++) {
-      var frac = j / POINTS;
-      var x = toPx(frac);
-      var rr = profile.radius(frac * profile.length) * drawScale;
-      topD += (j === 0 ? "M " : "L ") + x + " " + (midY - rr) + " ";
-      bottomD += (j === 0 ? "M " : "L ") + x + " " + (midY + rr) + " ";
+      var frac2 = j / POINTS;
+      var x2 = toPx(frac2);
+      var rr = profile.radius(frac2 * profile.length) * drawScale;
+      topD += (j === 0 ? "M " : "L ") + x2 + " " + (midY - rr) + " ";
+      bottomD += (j === 0 ? "M " : "L ") + x2 + " " + (midY + rr) + " ";
     }
     // The same simplified squiggle the plain tube uses, overlaid here
     // too for a direct side-by-side comparison -- scaled to the tube's
@@ -145,7 +157,7 @@
     var LIP_COLOR = "#a05244";
     var lipX = left - 12;
     var lipRadius = 6;
-    var lipRestGap = 5;   // half-gap when at rest (harmonic === null)
+    var lipRestGap = 5;   // half-gap when at rest (activeShape === null)
     var lipMinGap = 1;    // never fully cross, even at the most "closed" instant
     var lipGapAmplitude = 8;
     var lipTop = el("circle", { cx: lipX, cy: midY - lipRestGap, r: lipRadius, fill: LIP_COLOR });
@@ -161,8 +173,10 @@
     var activeK = null;
     var phase = 0;
     var lastT = null;
+    var running = true;
 
     function frame(t) {
+      if (!running) return;
       if (lastT === null) lastT = t;
       var dt = (t - lastT) / 1000;
       lastT = t;
@@ -171,13 +185,10 @@
       var d = "";
       for (var b = 0; b < bands.length; b++) {
         var envelope = activeShape ? (activeShape[b] + activeShape[b + 1]) / 2 : 0;
-        bands[b].setAttribute("fill", pressureColor(envelope * Math.cos(phase)));
-
-        var frac = (b + 0.5) / POINTS;
-        var x = toPx(frac);
-        var localAmplitude = profile.radius(frac * profile.length) * drawScale * 0.7;
-        var y = midY - envelope * localAmplitude * Math.cos(phase);
-        d += (b === 0 ? "M " : "L ") + x + " " + y + " ";
+        var pressure = envelope * Math.cos(phase);
+        bands[b].setAttribute("fill", pressureColor(pressure));
+        var y = midY - pressure * bandLocalAmplitude[b];
+        d += (b === 0 ? "M " : "L ") + bandX[b] + " " + y + " ";
       }
       wave.setAttribute("d", d);
 
@@ -189,11 +200,6 @@
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
-
-    function normalize(samples) {
-      var peak = Math.max.apply(null, samples.map(function (s) { return Math.abs(s.p); }));
-      return samples.map(function (s) { return peak > 1e-6 ? s.p / peak : 0; });
-    }
 
     function setHarmonic(n) {
       if (n == null) { activeShape = null; activeK = null; return; }
@@ -261,9 +267,18 @@
       return curve;
     }
 
+    // Stops the animation loop for good -- without this, replacing a
+    // makeBellPipe instance (e.g. on a slide-position change) just drops
+    // the caller's own reference while the pending requestAnimationFrame
+    // callback keeps rescheduling itself forever, keeping the detached
+    // SVG, all 140 bands, and the shapes/modeK arrays alive indefinitely.
+    function stop() {
+      running = false;
+    }
+
     return {
       setHarmonic: setHarmonic, setFrequency: setFrequency, ratioForLabel: ratioForLabel,
-      impedanceAt: impedanceAt, impedanceCurve: impedanceCurve
+      impedanceAt: impedanceAt, impedanceCurve: impedanceCurve, stop: stop
     };
   }
 

@@ -140,11 +140,6 @@
     margin: 4px 0 18px;
     flex-wrap: wrap;
   }
-  .freq-entry label {
-    color: var(--brass-bright);
-    font-size: 0.95em;
-    white-space: nowrap;
-  }
   .freq-entry input[type="range"] {
     width: 260px;
   }
@@ -350,7 +345,7 @@
   .position-entry {
     margin: 4px 0 18px;
   }
-  .tempo-entry label, .position-entry label {
+  .tempo-entry label, .position-entry label, .freq-entry label {
     color: var(--brass-bright);
     font-size: 0.95em;
     white-space: nowrap;

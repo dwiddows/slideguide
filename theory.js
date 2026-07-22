@@ -18,12 +18,15 @@
   var sleep = StaffView.sleep;
 
   var MAX_PARTIAL = 8;
-  // The bell's own absolute length is fixed (a real bell doesn't grow
-  // when you extend the slide) -- only the cylindrical part lengthens,
-  // so a longer position's flare starts at a *later* fraction of a
-  // *longer* tube, calibrated so position 1 matches this page's
-  // original, already-tested 50/50 cylinder/flare split.
-  var FLARE_ABSOLUTE_LENGTH = 0.5;
+  // The bell itself (taper + rapid flare) doesn't grow when you extend
+  // the slide -- only the cylindrical section does -- so both absolute
+  // lengths below (in position-1 length units, where the whole tube is
+  // 1) stay fixed across positions; only their FRACTION of the current,
+  // possibly-longer tube shrinks. Values are pipe-bell.js's own default
+  // x1/x2 (0.1311, 0.7776), decomposed into "bell starts here" and
+  // "rapid flare starts here" distances from the open end.
+  var BELL_ABSOLUTE_LENGTH = 1 - 0.1311;
+  var RAPID_FLARE_ABSOLUTE_LENGTH = 1 - 0.7776;
 
   var staffSvg = document.getElementById("staff-svg");
   var numberRowContainer = document.getElementById("partial-numbers");
@@ -31,10 +34,118 @@
   var bellPipeContainer = document.getElementById("pipe-bell");
   var positionSelect = document.getElementById("position-select");
   var playBtn = document.getElementById("play-btn");
+  var freqSlider = document.getElementById("freq-slider");
+  var freqValue = document.getElementById("freq-value");
+  var impedanceSvg = document.getElementById("impedance-svg");
 
   var series, staffHandle, numberRow, pipe, bellPipe;
+  var impedanceMarker = null;
   var playing = false;
   var NOTE_MS = 2200;
+
+  // The slider's own units (30..870) are relFreq*100, just so the range
+  // input can work in plain integers -- 1.00x lines up with the lowest
+  // resonance, matching setHarmonic(1).
+  var MIN_REL_FREQ = 0.30, MAX_REL_FREQ = 8.70;
+
+  function drawImpedanceCurve() {
+    var width = 800, height = 140, margin = 30;
+    var left = margin, right = width - margin;
+    var topY = margin * 0.4, bottomY = height - margin * 0.4;
+    var maxZ = 70;
+
+    function x(relFreq) { return left + (relFreq - MIN_REL_FREQ) / (MAX_REL_FREQ - MIN_REL_FREQ) * (right - left); }
+    function y(z) { return bottomY - Math.min(z, maxZ) / maxZ * (bottomY - topY); }
+
+    impedanceSvg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    impedanceSvg.setAttribute("width", width);
+    impedanceSvg.setAttribute("height", height);
+    clearSvg(impedanceSvg);
+
+    impedanceSvg.appendChild(el("line", {
+      x1: left, y1: bottomY, x2: right, y2: bottomY, stroke: "var(--brass-dim)", "stroke-width": 1
+    }));
+
+    var curve = bellPipe.impedanceCurve(MIN_REL_FREQ, MAX_REL_FREQ, 200);
+    var d = curve.map(function (pt, i) {
+      return (i === 0 ? "M " : "L ") + x(pt.relFreq) + " " + y(pt.z);
+    }).join(" ");
+    impedanceSvg.appendChild(el("path", { d: d, fill: "none", stroke: "var(--brass)", "stroke-width": 2 }));
+
+    impedanceMarker = el("line", {
+      x1: x(1), y1: topY, x2: x(1), y2: bottomY, stroke: "#2ecc71", "stroke-width": 2
+    });
+    impedanceSvg.appendChild(impedanceMarker);
+
+    // Store the mapping so updateFrequency (called far more often, on
+    // every slider drag) doesn't need to rebuild the whole curve just
+    // to move the marker.
+    drawImpedanceCurve.markerX = x;
+  }
+
+  function moveMarker(realRatio) {
+    if (!impedanceMarker) return;
+    var xPos = drawImpedanceCurve.markerX(realRatio);
+    impedanceMarker.setAttribute("x1", xPos);
+    impedanceMarker.setAttribute("x2", xPos);
+  }
+
+  // The slider's own units are a partial NUMBER (possibly fractional --
+  // interpolated between two real resonances), not a frequency ratio --
+  // "2" means exactly the same k as setHarmonic(2), not literally 2x the
+  // fundamental (the ladder isn't evenly spaced; see pipe-bell.js). The
+  // readout shows both, since that gap IS the point being demonstrated.
+  function setFreqLabel(label, realRatio) {
+    freqSlider.value = Math.round(label * 100);
+    freqValue.textContent = "partial " + label.toFixed(2) + " → " + realRatio.toFixed(2) + "× the fundamental";
+  }
+
+  // Display-only: moves the slider itself, its numeric readout, and the
+  // impedance-graph marker, without touching the bell diagram or audio --
+  // what playAll uses to keep the slider in sync while it's actually
+  // driving the bell diagram via the exact (not approximated) resonance
+  // shapes through setHarmonic instead.
+  function updateSliderDisplay(label) {
+    var realRatio = bellPipe.ratioForLabel(label);
+    setFreqLabel(label, realRatio);
+    moveMarker(realRatio);
+  }
+
+  // Used when the user drags the slider directly -- this actually
+  // drives the bell diagram's animated shape, at the exact k for this
+  // (possibly fractional) partial label. Returns the real ratio, for
+  // the caller to use for audio pitch.
+  function applyFrequency(label) {
+    var realRatio = bellPipe.setFrequency(label);
+    setFreqLabel(label, realRatio);
+    moveMarker(realRatio);
+    return realRatio;
+  }
+
+  // A live tone while dragging the slider: pitch is the fundamental
+  // times the REAL frequency ratio for wherever the slider actually
+  // landed, volume follows the bore's own impedance there -- loud near
+  // a resonance, quiet in between, the same "amplifies some, cancels
+  // others" idea the impedance graph shows, just audible instead of
+  // only visible. Fades out after a short idle period rather than
+  // cutting off the instant the slider stops moving.
+  var continuousTone = null;
+  var continuousToneIdleTimer = null;
+  var MAX_IMPEDANCE_FOR_GAIN = 40;
+
+  function playContinuousTone(realRatio) {
+    if (!continuousTone) continuousTone = StaffView.makeContinuousTone();
+    var fundamentalFreq = MusicTheory.frequency(series[0].note);
+    var z = bellPipe.impedanceAt(realRatio);
+    var gain = 0.02 + 0.28 * Math.min(1, z / MAX_IMPEDANCE_FOR_GAIN);
+    continuousTone.setFrequency(fundamentalFreq * realRatio);
+    continuousTone.setGain(gain);
+
+    clearTimeout(continuousToneIdleTimer);
+    continuousToneIdleTimer = setTimeout(function () {
+      continuousTone.setGain(0);
+    }, 200);
+  }
 
   function render(position) {
     series = TrombonePositions.naturalHarmonicSeries(MAX_PARTIAL, position);
@@ -97,15 +208,23 @@
     var tubeLength = TrombonePositions.relativeTubeLength(position);
     var maxTubeLength = TrombonePositions.relativeTubeLength(TrombonePositions.MAX_POSITION);
     var lengthFraction = tubeLength / maxTubeLength;
-    var flareStart = 1 - FLARE_ABSOLUTE_LENGTH / tubeLength;
+    var x1 = 1 - BELL_ABSOLUTE_LENGTH / tubeLength;
+    var x2 = 1 - RAPID_FLARE_ABSOLUTE_LENGTH / tubeLength;
 
     pipeContainer.innerHTML = "";
     pipe = Pipe.makePipe(pipeContainer, { width: 800, height: 120, lengthFraction: lengthFraction });
 
     bellPipeContainer.innerHTML = "";
     bellPipe = PipeBell.makeBellPipe(bellPipeContainer, {
-      width: 800, height: 160, lengthFraction: lengthFraction, flareStart: flareStart
+      width: 800, height: 160, lengthFraction: lengthFraction, x1: x1, x2: x2
     });
+
+    // This position's bore has its own actual resonances (see the
+    // README on why a schematic profile like this one doesn't land
+    // exactly on integer ratios) -- rebuild the curve, and reapply
+    // the slider's current setting to the fresh bellPipe instance.
+    drawImpedanceCurve();
+    applyFrequency(Number(freqSlider.value) / 100);
   }
 
   // ---- Playback: step up through the series from the bottom ----------------
@@ -114,12 +233,15 @@
     playing = true;
     playBtn.disabled = true;
     positionSelect.disabled = true;
+    freqSlider.disabled = true;
+    if (continuousTone) continuousTone.setGain(0);
 
     for (var i = 0; i < series.length; i++) {
       staffHandle.highlightNote(i);
       numberRow.highlightNote(i);
       pipe.setHarmonic(series[i].partial);
       bellPipe.setHarmonic(series[i].partial);
+      updateSliderDisplay(series[i].partial);
       playTone(MusicTheory.frequency(series[i].note), NOTE_MS * 0.9);
       await sleep(NOTE_MS);
     }
@@ -132,9 +254,15 @@
     playing = false;
     playBtn.disabled = false;
     positionSelect.disabled = false;
+    freqSlider.disabled = false;
   }
 
   playBtn.addEventListener("click", playAll);
+  freqSlider.addEventListener("input", function () {
+    var label = Number(freqSlider.value) / 100;
+    var realRatio = applyFrequency(label);
+    playContinuousTone(realRatio);
+  });
   positionSelect.addEventListener("change", function () {
     render(Number(positionSelect.value));
   });

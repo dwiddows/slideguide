@@ -50,6 +50,25 @@
   <div class="playback-row">
     <button id="play-btn">&#9654; Play</button>
   </div>
+
+  <hr class="section-divider">
+
+  <p><strong>Experiment.</strong> The lips can buzz at any frequency at all -- the bore doesn't
+  pick a note for you, it just responds more strongly to some frequencies than others. Drag the
+  slider to move between partials (fractional values interpolate in between) and watch the bell
+  diagram respond, then compare against its actual input impedance below: tall means the bore
+  resists strongly there (a resonance -- a real partial), short means it barely responds. The
+  partial numbers aren't evenly spaced in real frequency -- the readout shows both.</p>
+
+  <div class="freq-entry">
+    <label for="freq-slider">Partial (fractional = in between):</label>
+    <input type="range" id="freq-slider" min="30" max="870" value="100" step="1">
+    <span id="freq-value">partial 1.00 &rarr; 1.00&times; the fundamental</span>
+  </div>
+
+  <div class="impedance-wrap">
+    <svg id="impedance-svg" class="impedance-svg"></svg>
+  </div>
 </div>
 
 <script src="music-theory.js"></script>

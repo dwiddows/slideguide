@@ -74,6 +74,70 @@ function closeTo(a, b, tolerance) { return Math.abs(a - b) < tolerance; }
     "gaps between modes stay reasonably even (within 35% of the mean), unlike a plain cylinder's 2x/0x alternation");
 })();
 
+// ---- threeSegmentBellProfile: radius is continuous at BOTH joins (no
+// jump at the cylinder/taper join or the taper/flare join), and reaches
+// the requested ratios at each landmark. -------------------------------
+(function () {
+  var profile = HornEquation.threeSegmentBellProfile({
+    x1: 0.1311, x2: 0.7776, taperPower: 1.1752, flarePower: 4.8895, taperRatio: 3.3279, bellRatio: 10.7865
+  });
+  assert(closeTo(profile.radius(0.1311), 1, 1e-9), "radius at the throat/taper join is 1");
+  assert(closeTo(profile.radius(0.1311 - 1e-9), profile.radius(0.1311 + 1e-9), 1e-3),
+    "radius has no jump at the cylinder/taper join");
+  assert(closeTo(profile.radius(0.7776), 3.3279, 1e-3), "radius at the taper/flare join matches taperRatio");
+  assert(closeTo(profile.radius(0.7776 - 1e-9), profile.radius(0.7776 + 1e-9), 1e-3),
+    "radius has no jump at the taper/flare join");
+  assert(closeTo(profile.radius(1), 10.7865, 1e-3), "radius at the open end matches bellRatio");
+})();
+
+// ---- The point of building this richer profile at all: a real bell's
+// gentle-taper-then-rapid-flare shape (not one single flare rate) pulls
+// the ladder much closer to a clean integer series than
+// compoundBellProfile's single flare managed. These parameters are a
+// numerically found (not hand-tuned) *joint* fit across positions 1-7
+// -- see the position-robustness test below for why: fitting position 1
+// alone gets tighter here (within ~0.08) but degrades to ~2 full
+// partials of drift by position 7, since a fixed-length bell corrects a
+// proportionally bigger cylinder less. This fit trades some of that
+// position-1 precision for staying reasonable everywhere. ---------------
+(function () {
+  var profile = HornEquation.threeSegmentBellProfile({
+    x1: 0.1311, x2: 0.7776, taperPower: 1.1752, flarePower: 4.8895, taperRatio: 3.3279, bellRatio: 10.7865
+  });
+  var roots = HornEquation.findModes(profile.logAreaSlope, { maxModes: 8 });
+  roots.forEach(function (k, i) {
+    var ratio = k / roots[0];
+    assert(closeTo(ratio, i + 1, 0.3),
+      "partial " + (i + 1) + " should be within 0.3 of ratio " + (i + 1) + " (got " + ratio.toFixed(3) + ")");
+  });
+})();
+
+// ---- Position robustness: theory.js keeps the bell's own absolute
+// length fixed and only grows the cylindrical section for lower
+// positions (see its BELL_ABSOLUTE_LENGTH/RAPID_FLARE_ABSOLUTE_LENGTH).
+// Reproducing that same x1/x2 recalculation here and checking every
+// position from 1 to 7 is the actual claim this profile is trying to
+// make: reasonably close everywhere, not just at position 1. -----------
+(function () {
+  var x1ref = 0.1311, x2ref = 0.7776;
+  var bellAbsoluteLength = 1 - x1ref, rapidFlareAbsoluteLength = 1 - x2ref;
+  for (var position = 1; position <= 7; position++) {
+    var tubeLength = Math.pow(2, (position - 1) / 12);
+    var x1 = 1 - bellAbsoluteLength / tubeLength;
+    var x2 = 1 - rapidFlareAbsoluteLength / tubeLength;
+    var profile = HornEquation.threeSegmentBellProfile({
+      x1: x1, x2: x2, taperPower: 1.1752, flarePower: 4.8895, taperRatio: 3.3279, bellRatio: 10.7865
+    });
+    var roots = HornEquation.findModes(profile.logAreaSlope, { maxModes: 8 });
+    roots.forEach(function (k, i) {
+      var ratio = k / roots[0];
+      assert(closeTo(ratio, i + 1, 0.6),
+        "position " + position + ", partial " + (i + 1) + " should stay within 0.6 of ratio " +
+        (i + 1) + " (got " + ratio.toFixed(3) + ")");
+    });
+  }
+})();
+
 function assertRatiosClose(actual, expected, message) {
   var ok = actual.length === expected.length &&
     actual.every(function (a, i) { return closeTo(a, expected[i], 0.01); });

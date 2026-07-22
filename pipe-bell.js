@@ -10,7 +10,11 @@
  *
  * Played pitch is intentionally NOT tied to this module's own computed
  * frequencies (see horn-equation.js's docstring) -- setHarmonic(n) only
- * selects which precomputed mode SHAPE to animate.
+ * selects which precomputed mode SHAPE to animate. setFrequency(label)
+ * is the same idea generalized to any partial NUMBER at all, including
+ * fractional ones in between -- interpolated over the bore's own real
+ * (unevenly-spaced) resonance ladder, not a naive multiple of the
+ * fundamental, so it agrees exactly with setHarmonic at every integer.
  */
 (function (root, factory) {
   if (typeof module !== "undefined" && module.exports) {
@@ -36,17 +40,28 @@
     var maxModes = opts.maxModes || 8;
     var speed = opts.speed || 2.2;
 
-    var profile = HornEquation.compoundBellProfile({
-      flareStart: opts.flareStart != null ? opts.flareStart : 0.5,
-      bellRatio: opts.bellRatio || 8,
-      power: opts.power || 2
+    // Defaults are a numerical search for parameters that keep the
+    // resonance ladder reasonably close to a clean 1..8 integer series
+    // ACROSS positions 1-7 jointly (not just position 1 alone, which
+    // fits much tighter on its own but degrades badly -- drift up to 2
+    // full partials by position 7 -- once the cylinder eats a bigger
+    // share of a fixed-length bell; see the README). This trades some
+    // precision at position 1 for staying roughly-decent everywhere,
+    // the same tradeoff real horn design faces. x1/x2 are overridable
+    // per slide position (the bell itself doesn't change size when you
+    // extend the slide; only the cylindrical section does -- theory.js).
+    var profile = HornEquation.threeSegmentBellProfile({
+      x1: opts.x1 != null ? opts.x1 : 0.1311,
+      x2: opts.x2 != null ? opts.x2 : 0.7776,
+      taperPower: opts.taperPower || 1.1752,
+      flarePower: opts.flarePower || 4.8895,
+      taperRatio: opts.taperRatio || 3.3279,
+      bellRatio: opts.bellRatio || 10.7865
     });
     var modeK = HornEquation.findModes(profile.logAreaSlope, { maxModes: maxModes });
     var POINTS = 140;
     var shapes = modeK.map(function (k) {
-      var samples = HornEquation.modeShape(profile.logAreaSlope, k, { points: POINTS });
-      var peak = Math.max.apply(null, samples.map(function (s) { return Math.abs(s.p); }));
-      return samples.map(function (s) { return s.p / peak; }); // normalized to [-1, 1]
+      return normalize(HornEquation.modeShape(profile.logAreaSlope, k, { points: POINTS }));
     });
 
     var svg = el("svg", {
@@ -138,7 +153,12 @@
     svg.appendChild(lipTop);
     svg.appendChild(lipBottom);
 
-    var harmonic = null;
+    // Either setHarmonic (one of the real resonances, precomputed above)
+    // or setFrequency (literally any lip frequency, resonant or not --
+    // see the docstring) sets these same two variables; frame() doesn't
+    // need to know or care which one drove them.
+    var activeShape = null;
+    var activeK = null;
     var phase = 0;
     var lastT = null;
 
@@ -146,12 +166,11 @@
       if (lastT === null) lastT = t;
       var dt = (t - lastT) / 1000;
       lastT = t;
-      var shape = harmonic ? shapes[harmonic - 1] : null;
-      if (shape) phase += speed * (modeK[harmonic - 1] / modeK[0]) * dt;
+      if (activeShape) phase += speed * (activeK / modeK[0]) * dt;
 
       var d = "";
       for (var b = 0; b < bands.length; b++) {
-        var envelope = shape ? (shape[b] + shape[b + 1]) / 2 : 0;
+        var envelope = activeShape ? (activeShape[b] + activeShape[b + 1]) / 2 : 0;
         bands[b].setAttribute("fill", pressureColor(envelope * Math.cos(phase)));
 
         var frac = (b + 0.5) / POINTS;
@@ -162,7 +181,7 @@
       }
       wave.setAttribute("d", d);
 
-      var lipValue = shape ? shape[0] * Math.cos(phase) : 0;
+      var lipValue = activeShape ? activeShape[0] * Math.cos(phase) : 0;
       var lipGap = Math.max(lipMinGap, lipRestGap + lipValue * lipGapAmplitude);
       lipTop.setAttribute("cy", midY - lipGap);
       lipBottom.setAttribute("cy", midY + lipGap);
@@ -171,11 +190,81 @@
     }
     requestAnimationFrame(frame);
 
-    function setHarmonic(n) {
-      harmonic = n;
+    function normalize(samples) {
+      var peak = Math.max.apply(null, samples.map(function (s) { return Math.abs(s.p); }));
+      return samples.map(function (s) { return peak > 1e-6 ? s.p / peak : 0; });
     }
 
-    return { setHarmonic: setHarmonic };
+    function setHarmonic(n) {
+      if (n == null) { activeShape = null; activeK = null; return; }
+      activeShape = shapes[n - 1];
+      activeK = modeK[n - 1];
+    }
+
+    // The ladder isn't evenly spaced (see the README/theory.html on why
+    // a schematic flare doesn't land on clean integer ratios), so
+    // "partial 2" is NOT at 2x the fundamental's frequency -- it's at
+    // whatever modeK[1] actually is. label is a partial NUMBER, possibly
+    // fractional (interpolated between two real, found resonances, or
+    // extrapolated a little past the first/last one) -- not a literal
+    // frequency ratio. At any integer label this deliberately lands on
+    // exactly the same k setHarmonic uses, so the two never disagree at
+    // the points where they're supposed to describe the same thing.
+    // Returns the resulting REAL frequency ratio (to modeK[0]), since
+    // that's what a caller needs for audio pitch or for plotting this
+    // spot on the (real-frequency-axed) impedance curve.
+    function kAtLabel(label) {
+      var lastSegment = modeK.length - 2;
+      var idx = label - 1; // 0 lines up with modeK[0], 1 with modeK[1], ...
+      var lo = Math.min(Math.max(Math.floor(idx), 0), lastSegment);
+      var frac = idx - lo;
+      return modeK[lo] + frac * (modeK[lo + 1] - modeK[lo]);
+    }
+
+    function setFrequency(label) {
+      if (label == null) { activeShape = null; activeK = null; return null; }
+      activeK = kAtLabel(label);
+      activeShape = normalize(HornEquation.modeShape(profile.logAreaSlope, activeK, { points: POINTS }));
+      return activeK / modeK[0];
+    }
+
+    // Read-only version of the same label->ratio lookup, for a caller
+    // that just wants to know where a label sits (e.g. to position the
+    // impedance-graph marker while setHarmonic, not setFrequency, is
+    // the one actually driving the animated shape -- during the Play
+    // button's own step-through, say) without disturbing activeShape.
+    function ratioForLabel(label) {
+      return kAtLabel(label) / modeK[0];
+    }
+
+    // A schematic stand-in for the bore's input impedance: how strongly
+    // it resists (rather than absorbs) a given driving frequency. Real
+    // impedance depends on real losses and a real open-end radiation
+    // impedance, neither modeled here -- this is just 1/|residual of the
+    // same idealized boundary condition findModes solves|, which is
+    // exactly zero (impedance infinite) at a true lossless resonance and
+    // small in between, the same qualitative shape for a much smaller
+    // amount of new physics.
+    function impedanceAt(relFreq) {
+      var k = relFreq * modeK[0];
+      var end = HornEquation.endValue(profile.logAreaSlope, k, profile.length, 300);
+      return 1 / Math.max(0.015, Math.abs(end));
+    }
+
+    function impedanceCurve(minRelFreq, maxRelFreq, points) {
+      points = points || 160;
+      var curve = [];
+      for (var i = 0; i <= points; i++) {
+        var relFreq = minRelFreq + (maxRelFreq - minRelFreq) * i / points;
+        curve.push({ relFreq: relFreq, z: impedanceAt(relFreq) });
+      }
+      return curve;
+    }
+
+    return {
+      setHarmonic: setHarmonic, setFrequency: setFrequency, ratioForLabel: ratioForLabel,
+      impedanceAt: impedanceAt, impedanceCurve: impedanceCurve
+    };
   }
 
   return { makeBellPipe: makeBellPipe };

@@ -293,6 +293,41 @@
     osc.stop(now + dur + 0.02);
   }
 
+  // A live-controllable tone for dragging a slider, rather than
+  // playTone's fire-and-forget fixed-duration note: starts silent,
+  // stays running, and setFrequency/setGain glide smoothly to whatever
+  // value is set next (setTargetAtTime, not a hard jump -- avoiding the
+  // clicks a sudden frequency/gain change would otherwise cause).
+  function makeContinuousTone() {
+    var ctx = ensureAudio();
+    var osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = 220;
+
+    var filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.Q.value = 0.7;
+    filter.frequency.value = 220 * 5.5;
+
+    var gain = ctx.createGain();
+    gain.gain.value = 0;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+
+    function setFrequency(freq) {
+      osc.frequency.setTargetAtTime(freq, ctx.currentTime, 0.015);
+      filter.frequency.setTargetAtTime(freq * 5.5, ctx.currentTime, 0.015);
+    }
+    function setGain(g) {
+      gain.gain.setTargetAtTime(g, ctx.currentTime, 0.04);
+    }
+
+    return { setFrequency: setFrequency, setGain: setGain };
+  }
+
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   return {
@@ -302,6 +337,7 @@
     makeStaff: makeStaff,
     makeNumberRow: makeNumberRow,
     playTone: playTone,
+    makeContinuousTone: makeContinuousTone,
     sleep: sleep
   };
 });

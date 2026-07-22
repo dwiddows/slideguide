@@ -132,11 +132,45 @@
     return { radius: radius, logAreaSlope: logAreaSlope, flareStart: flareStart, length: length };
   }
 
+  // A closer schematic to how real bells are actually shaped: not one
+  // flare rate, but a long cylindrical bore, then a gentle taper, and
+  // only a short RAPID flare right at the rim -- three stages, not two.
+  // Found by numerical search (not measured, not hand-picked) for
+  // parameters that pull compoundBellProfile's single-flare ladder
+  // (drifting a full partial away from integers by partial 8) back to
+  // within about 0.08 of a clean 1..8 ladder -- see the README. Radius
+  // is continuous at both joins (no jump), same as compoundBellProfile.
+  function threeSegmentBellProfile(opts) {
+    opts = opts || {};
+    var length = opts.length || 1;
+    var x1 = opts.x1;                  // cylinder ends, gentle taper begins
+    var x2 = opts.x2;                  // gentle taper ends, rapid flare begins
+    var taperPower = opts.taperPower;
+    var flarePower = opts.flarePower;
+    var taperRatio = opts.taperRatio;  // radius (relative to throat) reached at x2
+    var bellRatio = opts.bellRatio;    // radius (relative to throat) reached at x=length
+    var u1 = (x2 - x1) / (Math.pow(taperRatio, 1 / taperPower) - 1);
+    var u2 = (length - x2) / (Math.pow(bellRatio / taperRatio, 1 / flarePower) - 1);
+
+    function radius(x) {
+      if (x <= x1) return 1;
+      if (x <= x2) return Math.pow(1 + (x - x1) / u1, taperPower);
+      return taperRatio * Math.pow(1 + (x - x2) / u2, flarePower);
+    }
+    function logAreaSlope(x) {
+      if (x <= x1) return 0;
+      if (x <= x2) return (2 * taperPower) / (u1 + (x - x1));
+      return (2 * flarePower) / (u2 + (x - x2));
+    }
+    return { radius: radius, logAreaSlope: logAreaSlope, length: length };
+  }
+
   return {
     integrate: integrate,
     endValue: endValue,
     findModes: findModes,
     modeShape: modeShape,
-    compoundBellProfile: compoundBellProfile
+    compoundBellProfile: compoundBellProfile,
+    threeSegmentBellProfile: threeSegmentBellProfile
   };
 });

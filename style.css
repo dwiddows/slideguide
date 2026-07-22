@@ -126,6 +126,44 @@
     width: 100%;
     height: auto;
   }
+  .section-divider {
+    width: 100%;
+    max-width: 900px;
+    border: none;
+    border-top: 1px solid var(--brass-dim);
+    margin: 8px 0 20px;
+  }
+  .freq-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 18px;
+    flex-wrap: wrap;
+  }
+  .freq-entry label {
+    color: var(--brass-bright);
+    font-size: 0.95em;
+    white-space: nowrap;
+  }
+  .freq-entry input[type="range"] {
+    width: 260px;
+  }
+  .freq-entry span {
+    font-family: monospace;
+    color: var(--brass);
+    min-width: 3.5em;
+    font-size: 0.95em;
+  }
+  .impedance-wrap {
+    width: 100%;
+    max-width: 900px;
+    margin: 6px 0 22px;
+  }
+  .impedance-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
   /* Same alignment idea as .position-list (a row of SVG-text labels
      sharing the staff's own noteX coordinates), but for a container
      that doesn't sit inside .panel-body -- so it needs none of that

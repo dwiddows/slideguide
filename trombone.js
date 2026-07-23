@@ -2,7 +2,7 @@
   "use strict";
 
   // DOM/SVG helpers, staff rendering, and tone playback all live in
-  // staff-view.js now -- shared with theory.html, which needs the exact
+  // staff-view.js now -- shared with harmonic_theory.html, which needs the exact
   // same staff and the exact same sound, not a second copy of either.
   var el = StaffView.el;
   var htmlEl = StaffView.htmlEl;

@@ -56,13 +56,19 @@ etc.) -- around 200 assertions covering the theory engine, the harmonic
 position model, the solver (including brute-force verification against the
 DP), and the ABC bridge.
 
-**The harmonic series and the bell (`theory.html`).** A companion page
+**The harmonic series and the bell (`harmonic_theory.html`).** A companion page
 demonstrating the physics behind the position model: the pedal-to-high-B♭
 natural harmonic series on a staff, an animated standing wave in a plain
 tube, and (`pipe-bell.js`/`horn-equation.js`) a numerical solution of the
 Webster horn equation showing how a flared bell pulls the even harmonics
 back into a tube that would otherwise, closed at one end, only resonate
 at odd multiples of its fundamental.
+
+**Choosing between positions (`slide_theory.html`).** A companion page
+walking through the problem, position model, and solver above the same
+way, but browsable: the position/partial table, the note-to-positions
+table it inverts to, and how the solver's four weights combine into a
+total cost for a whole passage.
 
 ## References
 

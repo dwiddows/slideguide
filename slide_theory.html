@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlideGuide: How It Works</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>How It Works</h1>
+
+<div class="stage">
+  <p><a href="index.html">&larr; Trombone Positions Calculator</a></p>
+
+  <div class="how-it-works-body">
+    <h3>1. The problem</h3>
+    <p>Many notes on a trombone can be played in more than one slide position: a pitch comes
+    from the slide length <em>and</em> which harmonic (partial) of that length's overtone
+    series you buzz, so different combinations often land on the same note. A trombonist picks
+    one every time, and the choice matters -- it changes how far the slide travels, how often
+    it changes direction, and how close to the bell it sits.</p>
+
+    <h3>2. Which notes each position can play</h3>
+    <p>Position 1's fundamental is the horn's pedal B♭; each position down lowers that
+    fundamental by a semitone, and each fundamental carries its own harmonic series (see
+    <a href="harmonic_theory.html">The Harmonic Series</a> for how that series itself comes
+    from the tube's own physics, with an interactive version of the table below):</p>
+    <div class="table-scroll">
+      <table class="how-it-works-table">
+        <thead>
+          <tr><th>Position</th><th>Fundamental</th><th>2nd</th><th>3rd</th><th>4th</th><th>5th</th><th>6th</th><th>7th</th><th>8th</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>B♭1</td><td>B♭2</td><td>F3</td><td>B♭3</td><td>D4</td><td>F4</td><td>&mdash;</td><td>B♭4</td></tr>
+          <tr><td>2</td><td>A1</td><td>A2</td><td>E3</td><td>A3</td><td>C♯4</td><td>E4</td><td>G4*</td><td>A4</td></tr>
+          <tr><td>3</td><td>A♭1</td><td>A♭2</td><td>E♭3</td><td>A♭3</td><td>C4</td><td>E♭4</td><td>G♭4*</td><td>A♭4</td></tr>
+          <tr><td>4</td><td>G1</td><td>G2</td><td>D3</td><td>G3</td><td>B3</td><td>D4</td><td>F4*</td><td>G4</td></tr>
+          <tr><td>5</td><td>G♭1</td><td>G♭2</td><td>D♭3</td><td>G♭3</td><td>B♭3</td><td>D♭4</td><td>E4*</td><td>G♭4</td></tr>
+          <tr><td>6</td><td>F1</td><td>F2</td><td>C3</td><td>F3</td><td>A3</td><td>C4</td><td>E♭4*</td><td>F4</td></tr>
+          <tr><td>7</td><td>E1</td><td>E2</td><td>B2</td><td>E3</td><td>G♯3</td><td>B3</td><td>D4*</td><td>E4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-caption">* the 7th partial is always noticeably flat (about a third of a
+    semitone) -- the position shown already has the real correction players use (shortening the
+    slide slightly to sharpen it back up) baked in. Position 1 has no 7th partial listed at all
+    (&mdash;): it's the slide fully closed, the shortest it can physically be, so there's no room
+    left to shorten it further and correct that flatness -- unlike every other position.</p>
+
+    <p>Inverting this table gives us a list of which positions are available for playing each
+    note -- one row per pitch class, one column per octave, so you can see how the choices
+    shift as a scale climbs:</p>
+    <div class="table-scroll">
+      <table class="how-it-works-table">
+        <thead>
+          <tr><th>Note</th><th>Octave 2</th><th>Octave 3</th><th>Octave 4</th><th>&hellip;</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>E</td><td>7</td><td>2, 7</td><td>2, 5*, 7</td><td>&hellip;</td></tr>
+          <tr><td>F</td><td>6</td><td>1, 6</td><td>1, 4*, 6</td><td>&hellip;</td></tr>
+          <tr><td>G♭</td><td>5</td><td>5</td><td>3*, 5, 7*</td><td>&hellip;</td></tr>
+          <tr><td>G</td><td>4</td><td>4</td><td>2*, 4, 6*</td><td>&hellip;</td></tr>
+          <tr><td>A♭</td><td>3</td><td>3, 7</td><td>3, 5*</td><td>&hellip;</td></tr>
+          <tr><td>A</td><td>2</td><td>2, 6</td><td>2, 4*</td><td>&hellip;</td></tr>
+          <tr><td>B♭</td><td>1</td><td>1, 5</td><td>1, 3*</td><td>&hellip;</td></tr>
+          <tr><td>B</td><td>7</td><td>4, 7</td><td>2*</td><td>&hellip;</td></tr>
+          <tr><td>C</td><td></td><td>6</td><td>3, 6</td><td>&hellip;</td></tr>
+          <tr><td>D♭</td><td></td><td>5</td><td>2, 5</td><td>&hellip;</td></tr>
+          <tr><td>D</td><td></td><td>4</td><td>1, 4, 7*</td><td>&hellip;</td></tr>
+          <tr><td>E♭</td><td></td><td>3</td><td>3, 6*</td><td>&hellip;</td></tr>
+          <tr><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-caption">* approximate (a flat 7th partial, or a hard-to-reach high 9th).
+    Options thin out toward octave 5 in this snippet only because that's the edge of the range
+    shown, not a real rule -- the trailing &hellip; is there so that doesn't read as "high notes
+    just have fewer choices". Blank cells are outside this horn's practical range at that
+    octave.</p>
+
+    <h3>3. What the solver optimizes</h3>
+    <p>Given a note with several playable positions, which one is "best" depends on what you're
+    optimizing for. This widget scores every candidate on four things:</p>
+    <div class="table-scroll">
+      <table class="how-it-works-table">
+        <thead>
+          <tr><th>Weight</th><th>What it means</th><th>How it's calculated</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Position</td>
+            <td>Prefer a low position number ("closer to the bell").</td>
+            <td rowspan="2"><code>position ^ exponent &times; weight</code></td>
+          </tr>
+          <tr>
+            <td>Position exponent</td>
+            <td>Makes 5th-7th position disproportionately costlier than 1st-4th, rather than
+            everything scaling together.</td>
+          </tr>
+          <tr>
+            <td>Position change</td>
+            <td>Prefer less total slide travel between notes.</td>
+            <td><code>|position &minus; previous position| &times; weight</code></td>
+          </tr>
+          <tr>
+            <td>Direction change</td>
+            <td>Prefer fewer reversals of slide direction. A clean reversal (the slide was
+            moving one way, now moves the other) costs a full point; a turn via a note where
+            the slide briefly stops costs only a quarter, since stopping on the way up or down
+            isn't really the same problem as doubling straight back.</td>
+            <td><code>1 &times; weight</code> (clean reversal), <code>0.25 &times; weight</code>
+            (via a stationary note), <code>0</code> otherwise</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4. Calculating a Total Score for a Whole Passage</h3>
+    <p>The total cost of a position sequence is these four costs added up across every note:
+    each note's own position cost, plus the position-change and direction-change cost between
+    it and the note before it. A locally cheapest choice for one note can force an expensive one
+    at the next, so the solver weighs the whole passage together as a dynamic program: moving
+    through it one note at a time, it keeps track of the cheapest running total for every
+    (position, incoming-direction)
+    combination reachable so far, carrying forward whichever paths could still turn out
+    cheapest overall, and only reads off the actual position sequence once it reaches the last
+    note and knows which running total won.</p>
+    <p>The three fixed panels on the calculator page are this same solver, just weighted
+    differently -- there's no single "correct" position policy, only different ways to choose
+    what to optimize for. "Set Your Own Policy" lets you weight those same four things yourself
+    and see what comes out.</p>
+
+    <h3>FAQ</h3>
+    <p><strong>Can I upload sheet music, a PDF, or a MuseScore file instead of typing ABC?</strong>
+    We don't accept file uploads here, since there's been no work done on copyright protection
+    for that. You can try converting your file to ABC notation. Tools that sometimes work easily
+    include <a href="https://musescore.org/" target="_blank" rel="noopener">MuseScore</a> (free,
+    can export a score straight to ABC notation) and
+    <a href="https://easyabc.sourceforge.net/" target="_blank" rel="noopener">EasyABC</a> (a
+    dedicated ABC editor that can also import MusicXML). Either way, once it's ABC text, paste it
+    in here.</p>
+
+    <p>The code for this app is freely available at
+    <a href="https://github.com/dwiddows/slideguide" target="_blank" rel="noopener">github.com/dwiddows/slideguide</a>.</p>
+  </div>
+
+  <p class="credits">Designed and tested by Dominic Widdows. Coded by Claude.
+  Thanks for the encouragement to <a href="https://www.colinpulkrabek.com/" target="_blank"
+  rel="noopener">Colin Pulkrabek</a> -- ask him about lessons.<br>
+  Released under the MIT License. Melody parsing by
+  <a href="https://abcjs.net/" target="_blank" rel="noopener">abcjs</a> (also MIT).</p>
+</div>
+
+</body>
+</html>

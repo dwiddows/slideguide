@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlideGuide: The Harmonic Series</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>The Harmonic Series</h1>
+
+<div class="stage">
+  <p><a href="index.html">&larr; Trombone Positions Calculator</a></p>
+
+  <p>The harmonic theory used to explain trombone slide positions can be presented very simply.
+  (The air-pressure mechanics is actually more complicated, see below!)
+
+  <p>A tube of a fixed length resonates with standing waves 
+    only if an exact number of wave oscillations matches the length of the tube.
+    If there is just one wave oscillation, that is called the fundamental frequency.
+    If there are exactly two waves, the frequency is doubled, and the note is an octave higher
+    (this result is sometimes attributed to Pythagoras though it has been discovered all over the world).
+    Doubling the frequency again gives 4 waves, and the pitch is two octaves higher, and 8 waves is 3 octaves higher.
+    The partials in between give notes within these octaves.
+  <p>
+    The pitches formed in this way are called the <i>harmonic series</i> of the tube.
+    In 1st position, the notes formed are pedal B&flat;, then B&flat;, F, B&flat;, D, F, A&flat; 
+    (a well-known flat one, not quite in tune), then B&flat; again, three octaves above the fundamental. 
+    You can see this series by clicking "Play" in the demo below.
+  </p>
+
+  <div class="position-entry">
+    <label for="position-select">Slide position:</label>
+    <select id="position-select">
+      <option value="1">1 (B&flat;)</option>
+      <option value="2">2 (A)</option>
+      <option value="3">3 (A&flat;)</option>
+      <option value="4">4 (G)</option>
+      <option value="5">5 (G&flat;)</option>
+      <option value="6">6 (F)</option>
+      <option value="7">7 (E)</option>
+    </select>
+  </div>
+
+  <p class="pipe-label">A plain tube: each partial fits n loops between two ends.</p>
+  <div class="pipe-wrap" id="pipe"></div>
+  <div class="playback-row">
+    <button id="play-btn">&#9654; Play</button>
+  </div>
+
+  <div class="staff-scroll" id="staff-scroll">
+    <svg id="staff-svg"></svg>
+  </div>
+  <p class="pipe-label">Partial number</p>
+  <div id="partial-numbers"></div>
+
+  <p>Moving the slide out to a lower position lengthens the tube, and lowers the whole series
+  with it &mdash; try different positions above.</p>
+
+  <p>Every combination of a slide position and a partial number makes a note:
+    trying them all out gives a "trombone notes table" like this:</p>
+
+  <div class="build-table-row">
+    <button id="build-table-btn" class="small-btn">Build Table</button>
+  </div>
+  <div class="table-scroll">
+    <table class="how-it-works-table" id="notes-table"></table>
+  </div>
+
+  <p>Note that some notes appear several times once the table is filled out.
+    For example, C4 (middle C) appears at the 5th partial in 3rd position, 
+    and the 6th partial in 6th position.
+    It follows that the note C4 can be played on the trombone in either of these positions.
+  </p>
+
+  <p>
+    If we follow through this process for all the different notes,
+    we get a related table: for every note, a list of positions where that note
+    can be played on the trombone.
+    This note-to-positions table is shown and used in
+    <a href="slide_theory.html">slide position calculation</a>.
+  </p>
+
+  <hr class="section-divider">
+
+  <h2>Detailed Version Using More Realistic Fluid Dynamics</h2>
+
+  <p>The presentation above is really more correct for describing a transverse wave on a string,
+    not a longitudinal pressure wave in a tube! For this, we need a lot more fluid dynamics.
+    The problem of modelling harmonics correctly on a horn wasn't rigourously solved mathematically 
+    until the 1930s, and benefited much from developments in gramophone engineering. (Citation needed1)
+
+  <p class="pipe-label">A tube that flares into a bell at the open end: the same n loops, but
+  reshaped -- compressed near the narrow throat, stretched out near the bell.</p>
+  <div class="pipe-wrap" id="pipe-bell"></div>
+
+
+  <p><strong>Experiment.</strong> 
+  The lips can buzz at any frequency at all, but the horn responds more 
+  strongly to some frequencies than others. Drag the
+  slider to change lip frequency, and watch the bell
+  diagram respond. The horn's predicted impedance and each frequencey is shown below: tall means the bore
+  resists strongly there (a resonance -- a real partial), short means it barely responds. The
+  partial numbers aren't spaced exactly evenly in the more detailed simulation -- 
+  the readout shows both the partial number and the expected distance.</p>
+
+  <div class="freq-entry">
+    <label for="freq-slider">Partial (fractional = in between):</label>
+    <input type="range" id="freq-slider" min="30" max="870" value="100" step="1">
+    <span id="freq-value">partial 1.00 &rarr; 1.00&times; the fundamental</span>
+  </div>
+
+  <div class="impedance-wrap">
+    <svg id="impedance-svg" class="impedance-svg"></svg>
+  </div>
+</div>
+
+
+
+<script src="music-theory.js"></script>
+<script src="trombone-positions.js"></script>
+<script src="staff-view.js"></script>
+<script src="pipe.js"></script>
+<script src="horn-equation.js"></script>
+<script src="pipe-bell.js"></script>
+<script src="theory.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 /**
  * Shared staff-notation rendering and tone playback -- factored out of
- * trombone.js once theory.html needed the exact same bass-clef staff
+ * trombone.js once harmonic_theory.html needed the exact same bass-clef staff
  * and note-playing sound trombone.js already had, so neither page has
  * to keep its own copy of this in sync with the other.
  *

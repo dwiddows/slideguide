@@ -57,7 +57,7 @@ function closeTo(a, b, tolerance) { return Math.abs(a - b) < tolerance; }
 // ---- The whole point: 8 resonances exist, strictly increasing, and
 // -- unlike the plain cylinder above -- their spacing is much more even
 // than the odd-only ladder's alternating-by-2 pattern (not claiming an
-// exact integer series; see theory.html/README for why a schematic,
+// exact integer series; see harmonic_theory.html/README for why a schematic,
 // continuous flare doesn't hit that exactly, only a real bell's more
 // elaborate shape would). --------------------------------------------
 (function () {

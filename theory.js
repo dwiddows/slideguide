@@ -1,5 +1,5 @@
 /**
- * theory.html: the natural harmonic series over a chosen slide
+ * harmonic_theory.html: the natural harmonic series over a chosen slide
  * position's own fundamental -- partials 1..8, drawn on the same staff
  * and played with the same tone this project's trombone calculator
  * already uses (see staff-view.js), stepping up through them one at a
@@ -25,9 +25,16 @@
   var bellPipeContainer = document.getElementById("pipe-bell");
   var positionSelect = document.getElementById("position-select");
   var playBtn = document.getElementById("play-btn");
+  var buildTableBtn = document.getElementById("build-table-btn");
+  var notesTable = document.getElementById("notes-table");
   var freqSlider = document.getElementById("freq-slider");
   var freqValue = document.getElementById("freq-value");
   var impedanceSvg = document.getElementById("impedance-svg");
+
+  // Column headers for the built notes table -- same labels as the
+  // static table on index.html, since this is the interactive version
+  // of the same idea (partials 1..MAX_PARTIAL).
+  var PARTIAL_LABELS = ["Fundamental", "2nd", "3rd", "4th", "5th", "6th", "7th (*slightly flat)", "8th"];
 
   var series, staffHandle, numberRow, pipe, bellPipe;
   var impedanceMarker = null;
@@ -228,6 +235,7 @@
     if (playing) return;
     playing = true;
     playBtn.disabled = true;
+    buildTableBtn.disabled = true;
     positionSelect.disabled = true;
     freqSlider.disabled = true;
     if (continuousTone) continuousTone.setGain(0);
@@ -249,11 +257,94 @@
     bellPipe.setHarmonic(null);
     playing = false;
     playBtn.disabled = false;
+    buildTableBtn.disabled = false;
     positionSelect.disabled = false;
     freqSlider.disabled = false;
   }
 
+  // ---- Notes table: one row per partial, one column per position, a
+  // real <table> whose cells start empty and get filled in live as
+  // buildTable plays through each position's series -- the table is
+  // the point here, not any one note, so it's built as a visible grid
+  // up front rather than assembled offscreen and dropped in at the end.
+  var BUILD_NOTE_MS = 200;
+  var cellEls = null; // cellEls[partialIndex][positionIndex] -> <td>
+
+  function initTable() {
+    var head = "<thead><tr><th>Partial</th>";
+    for (var position = 1; position <= TrombonePositions.MAX_POSITION; position++) {
+      head += "<th>Position " + position + "</th>";
+    }
+    head += "</tr></thead>";
+
+    // Highest partial on top, fundamental on the bottom row -- partial
+    // number rising with height, like a positive Y-axis, matching how
+    // the harmonic series is usually pictured.
+    var rows = "";
+    for (var i = PARTIAL_LABELS.length - 1; i >= 0; i--) {
+      rows += "<tr><td>" + PARTIAL_LABELS[i] + "</td>";
+      for (var p = 0; p < TrombonePositions.MAX_POSITION; p++) rows += "<td></td>";
+      rows += "</tr>";
+    }
+    notesTable.innerHTML = head + "<tbody>" + rows + "</tbody>";
+
+    cellEls = [];
+    var bodyRows = notesTable.tBodies[0].rows;
+    for (var r = 0; r < bodyRows.length; r++) {
+      var partialIndex = bodyRows.length - 1 - r;
+      var rowCells = bodyRows[r].cells;
+      var partialCells = [];
+      for (var c = 1; c < rowCells.length; c++) partialCells.push(rowCells[c]);
+      cellEls[partialIndex] = partialCells;
+    }
+  }
+
+  async function buildTable() {
+    if (playing) return;
+    playing = true;
+    playBtn.disabled = true;
+    buildTableBtn.disabled = true;
+    positionSelect.disabled = true;
+    freqSlider.disabled = true;
+    if (continuousTone) continuousTone.setGain(0);
+
+    var startPosition = Number(positionSelect.value);
+    initTable();
+
+    for (var position = 1; position <= TrombonePositions.MAX_POSITION; position++) {
+      positionSelect.value = position;
+      render(position);
+      for (var i = 0; i < series.length; i++) {
+        staffHandle.highlightNote(i);
+        numberRow.highlightNote(i);
+        pipe.setHarmonic(series[i].partial);
+        bellPipe.setHarmonic(series[i].partial);
+        updateSliderDisplay(series[i].partial);
+        playTone(MusicTheory.frequency(series[i].note), BUILD_NOTE_MS * 0.9);
+        cellEls[i][position - 1].textContent = MusicTheory.noteName(series[i].note);
+        await sleep(BUILD_NOTE_MS);
+      }
+    }
+
+    staffHandle.highlightNote(-1);
+    numberRow.highlightNote(-1);
+    pipe.setHarmonic(null);
+    bellPipe.setHarmonic(null);
+
+    positionSelect.value = startPosition;
+    render(startPosition);
+
+    playing = false;
+    playBtn.disabled = false;
+    buildTableBtn.disabled = false;
+    positionSelect.disabled = false;
+    freqSlider.disabled = false;
+  }
+
+  initTable();
+
   playBtn.addEventListener("click", playAll);
+  buildTableBtn.addEventListener("click", buildTable);
   freqSlider.addEventListener("input", function () {
     var label = Number(freqSlider.value) / 100;
     var realRatio = applyFrequency(label);

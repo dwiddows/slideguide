@@ -207,7 +207,7 @@
       activeK = modeK[n - 1];
     }
 
-    // The ladder isn't evenly spaced (see the README/theory.html on why
+    // The ladder isn't evenly spaced (see the README/harmonic_theory.html on why
     // a schematic flare doesn't land on clean integer ratios), so
     // "partial 2" is NOT at 2x the fundamental's frequency -- it's at
     // whatever modeK[1] actually is. label is a partial NUMBER, possibly

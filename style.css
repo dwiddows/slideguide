@@ -126,6 +126,13 @@
     width: 100%;
     height: auto;
   }
+  .build-table-row {
+    margin: 4px 0 14px;
+  }
+  .small-btn {
+    padding: 6px 14px;
+    font-size: 0.85em;
+  }
   .section-divider {
     width: 100%;
     max-width: 900px;

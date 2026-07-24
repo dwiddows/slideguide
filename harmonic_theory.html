@@ -86,23 +86,75 @@
 
   <h2>Detailed Version Using More Realistic Fluid Dynamics</h2>
 
-  <p>The presentation above is really more correct for describing a transverse wave on a string,
-    not a longitudinal pressure wave in a tube! For this, we need a lot more fluid dynamics.
-    The problem of modelling harmonics correctly on a horn wasn't rigourously solved mathematically 
-    until the 1930s, and benefited much from developments in gramophone engineering. (Citation needed1)
+  <p>
+    A better illustration of an air pressure wave might look more like this!
+    The air moves back and forth through the tube, and standing waves occur when
+    regions oscillate between higher pressure (red) and lower pressure (blue).
+    This process is driven by the lips rapidly opening and closing at the mouthpiece.
+  </p>
 
-  <p class="pipe-label">A tube that flares into a bell at the open end: the same n loops, but
-  reshaped -- compressed near the narrow throat, stretched out near the bell.</p>
   <div class="pipe-wrap" id="pipe-bell"></div>
 
+  <p>Key mathematical differences between a horn, and the simplified wave theory we started with, include the following:</p>
+
+  <ul>
+    <li>The air vibrates backwards and forwards, not up and down like on a guitar string.</li>
+    <li>A vibrating string is pinned at both ends: those points can't move at all. 
+      A tube isn't closed like that at either end. 
+      <ul>
+        <li>The bell is open, so the pressure here always matches the outside air pressure.</li>
+        <li>The pressure at the mouthpiece isn't fixed: pressure changes here are driven by the players lips.</li>
+      </ul>
+    </li>
+    <li>The lips can vibrate at <i>any</i> frequency.
+      (Horns reinforce some frequencies and resist others, which makes it <i>feel</i> 
+      like the lips can only make particular notes.)</li>
+    <li>The open end doesn't reflect waves perfectly: some parts escape and make the air around vibrate 
+      (otherwise we wouldn't hear anything!)</li>
+  </ul>
+
+  <p>
+    Without the bell, a plain cylinder, closed at the mouthpiece and open at the
+    bell, only resonates at <em>odd</em> multiples of the fundamental &mdash; the even harmonics
+    are simply missing. The bell's gradual flare makes a reflection that lets the even
+    harmonics back in, completing the full series.
+    (If you try remove the bell and try playing 
+    on just the slide of a trombone, you'll find that there are much bigger gaps between the partials you hear.)
+    This behavior occurs naturally when buzzing into conical animal horns.
+    Centuries of craftsmanship and trial and error led to the design of modern brass instruments,
+    long before the wave dynamics was understood mathematically.
+  </p>
+
+  <p>The horn equation for a tube of continuously changing cross-section was formalized by
+    Webster in 1919 (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC1091593/" target="_blank"
+    rel="noopener">Acoustical Impedance and the Theory of Horns and of the Phonograph</a>, PNAS
+    5(7):275&ndash;282). During 1920s and 30s horn designers wrestled with these equations
+    for gramophones and telephones (see this
+    <a href="http://acousticsresearchcentre.no/a-brief-history-of-electroacoustics-pt-8-horns-early-development-en/"
+    target="_blank" rel="noopener">brief history of horn acoustics</a>),
+    and the same methods could be used to model brass intruments.
+  </p>
+
+  <p>The simulation below demonstrates these fluid dynamics results in action.
+    The coding was done collaboratively with Claude code, and the solutions the code found
+    are demonstrated below.
+
+  <p>  
+    Because reflection and bore shape both vary with frequency,
+    a real tube's partials aren't spaced in the perfectly exact integer ratios an idealized string
+    produces &mdash; they have to be measured or modelled one by one, which is what the impedance
+    curve in the experiment below is doing. Solving for this precisely means tracking
+    pressure and airflow together as they move through a tube of continuously changing
+    cross-section (the Webster horn equation), rather than the single simple wave equation that
+    works for a string with fixed ends &mdash; a substantially harder mathematical problem.</p>
 
   <p><strong>Experiment.</strong> 
   The lips can buzz at any frequency at all, but the horn responds more 
   strongly to some frequencies than others. Drag the
   slider to change lip frequency, and watch the bell
-  diagram respond. The horn's predicted impedance and each frequencey is shown below: tall means the bore
-  resists strongly there (a resonance -- a real partial), short means it barely responds. The
-  partial numbers aren't spaced exactly evenly in the more detailed simulation -- 
+  diagram respond. The horn's predicted impedance at each frequency is shown below: tall means the bore
+  resists strongly there (a resonance &mdash; a real partial), short means it barely responds. The
+  partial numbers aren't spaced exactly evenly in the more detailed simulation &mdash; 
   the readout shows both the partial number and the expected distance.</p>
 
   <div class="freq-entry">

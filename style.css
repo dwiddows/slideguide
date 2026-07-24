@@ -27,6 +27,13 @@
     margin: 24px 0 20px;
     text-align: center;
   }
+  a {
+    color: var(--brass-dim);
+    text-decoration: underline;
+  }
+  a:hover {
+    color: var(--brass-bright);
+  }
   .stage {
     width: 100%;
     max-width: 1500px;
@@ -285,6 +292,51 @@
     overflow-x: auto;
     margin: 4px 0 14px;
   }
+  .note-list-scroll {
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid var(--brass-dim);
+    border-radius: 4px;
+    margin: 4px 0 14px;
+  }
+  .note-table {
+    width: auto;
+    border-collapse: collapse;
+  }
+  .note-table th, .note-table td {
+    border: 1px solid var(--brass-dim);
+    padding: 3px 10px;
+    text-align: left;
+  }
+  .note-table th {
+    background: var(--bg);
+    color: var(--brass-bright);
+    font-weight: bold;
+    font-size: 0.88em;
+  }
+  .note-thumb-cell {
+    padding: 0 4px;
+  }
+  .note-thumb-svg {
+    display: block;
+  }
+  .note-name-cell {
+    font-weight: bold;
+    color: var(--brass-bright);
+    font-size: 1em;
+    white-space: nowrap;
+  }
+  .note-positions-cell {
+    font-family: monospace;
+    font-weight: bold;
+    color: var(--brass-bright);
+    font-size: 1.15em;
+    white-space: nowrap;
+  }
+  .note-positions-ellipsis {
+    font-weight: normal;
+    color: var(--brass-dim);
+  }
   .how-it-works-table {
     width: 100%;
     border-collapse: collapse;
@@ -372,11 +424,7 @@
     flex-wrap: wrap;
   }
   .input-label-row a {
-    color: var(--brass-dim);
     font-size: 0.85em;
-  }
-  .input-label-row a:hover {
-    color: var(--brass-bright);
   }
   .melody-entry textarea {
     width: 100%;
@@ -407,13 +455,6 @@
     color: var(--brass-dim);
     font-size: 0.8em;
     text-align: center;
-  }
-  .credits a {
-    color: var(--brass-dim);
-    text-decoration: underline;
-  }
-  .credits a:hover {
-    color: var(--brass-bright);
   }
   /* On a narrow phone, the staff and surrounding controls otherwise
      dominate the page while the trombone graphics -- the actual point

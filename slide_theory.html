@@ -3,25 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlideGuide: How It Works</title>
+<title>SlideGuide: Slide Position Choices and Calculations</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>How It Works</h1>
+<h1>Slide Position Choices and Calculations</h1>
 
 <div class="stage">
   <p><a href="index.html">&larr; Trombone Positions Calculator</a></p>
 
   <div class="how-it-works-body">
-    <h3>1. The problem</h3>
+    <h3>The problem</h3>
     <p>Many notes on a trombone can be played in more than one slide position: a pitch comes
     from the slide length <em>and</em> which harmonic (partial) of that length's overtone
     series you buzz, so different combinations often land on the same note. A trombonist picks
     one every time, and the choice matters -- it changes how far the slide travels, how often
     it changes direction, and how close to the bell it sits.</p>
 
-    <h3>2. Which notes each position can play</h3>
+    <h3>Which notes each position can play</h3>
     <p>Position 1's fundamental is the horn's pedal B♭; each position down lowers that
     fundamental by a semitone, and each fundamental carries its own harmonic series (see
     <a href="harmonic_theory.html">The Harmonic Series</a> for how that series itself comes
@@ -45,41 +45,21 @@
     <p class="table-caption">* the 7th partial is always noticeably flat (about a third of a
     semitone) -- the position shown already has the real correction players use (shortening the
     slide slightly to sharpen it back up) baked in. Position 1 has no 7th partial listed at all
-    (&mdash;): it's the slide fully closed, the shortest it can physically be, so there's no room
-    left to shorten it further and correct that flatness -- unlike every other position.</p>
+    (&mdash;): the slide is all the way in so there is no sharpened 1st position.</p>
 
-    <p>Inverting this table gives us a list of which positions are available for playing each
-    note -- one row per pitch class, one column per octave, so you can see how the choices
-    shift as a scale climbs:</p>
-    <div class="table-scroll">
-      <table class="how-it-works-table">
+    <p>Inverting this table gives us, for every note, the list of positions that can play it --
+    one row per note, ordered from the highest pitch down, with a thumbnail showing where each
+    one sits on the staff:</p>
+    <div class="note-list-scroll">
+      <table class="note-table">
         <thead>
-          <tr><th>Note</th><th>Octave 2</th><th>Octave 3</th><th>Octave 4</th><th>&hellip;</th></tr>
+          <tr><th></th><th>Note</th><th>Positions</th></tr>
         </thead>
-        <tbody>
-          <tr><td>E</td><td>7</td><td>2, 7</td><td>2, 5*, 7</td><td>&hellip;</td></tr>
-          <tr><td>F</td><td>6</td><td>1, 6</td><td>1, 4*, 6</td><td>&hellip;</td></tr>
-          <tr><td>G♭</td><td>5</td><td>5</td><td>3*, 5, 7*</td><td>&hellip;</td></tr>
-          <tr><td>G</td><td>4</td><td>4</td><td>2*, 4, 6*</td><td>&hellip;</td></tr>
-          <tr><td>A♭</td><td>3</td><td>3, 7</td><td>3, 5*</td><td>&hellip;</td></tr>
-          <tr><td>A</td><td>2</td><td>2, 6</td><td>2, 4*</td><td>&hellip;</td></tr>
-          <tr><td>B♭</td><td>1</td><td>1, 5</td><td>1, 3*</td><td>&hellip;</td></tr>
-          <tr><td>B</td><td>7</td><td>4, 7</td><td>2*</td><td>&hellip;</td></tr>
-          <tr><td>C</td><td></td><td>6</td><td>3, 6</td><td>&hellip;</td></tr>
-          <tr><td>D♭</td><td></td><td>5</td><td>2, 5</td><td>&hellip;</td></tr>
-          <tr><td>D</td><td></td><td>4</td><td>1, 4, 7*</td><td>&hellip;</td></tr>
-          <tr><td>E♭</td><td></td><td>3</td><td>3, 6*</td><td>&hellip;</td></tr>
-          <tr><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td></tr>
-        </tbody>
+        <tbody id="note-table-body"></tbody>
       </table>
     </div>
-    <p class="table-caption">* approximate (a flat 7th partial, or a hard-to-reach high 9th).
-    Options thin out toward octave 5 in this snippet only because that's the edge of the range
-    shown, not a real rule -- the trailing &hellip; is there so that doesn't read as "high notes
-    just have fewer choices". Blank cells are outside this horn's practical range at that
-    octave.</p>
 
-    <h3>3. What the solver optimizes</h3>
+    <h3>What the solver optimizes</h3>
     <p>Given a note with several playable positions, which one is "best" depends on what you're
     optimizing for. This widget scores every candidate on four things:</p>
     <div class="table-scroll">
@@ -116,7 +96,7 @@
       </table>
     </div>
 
-    <h3>4. Calculating a Total Score for a Whole Passage</h3>
+    <h3>Calculating a Total Score for a Whole Passage</h3>
     <p>The total cost of a position sequence is these four costs added up across every note:
     each note's own position cost, plus the position-change and direction-change cost between
     it and the note before it. A locally cheapest choice for one note can force an expensive one
@@ -128,29 +108,14 @@
     note and knows which running total won.</p>
     <p>The three fixed panels on the calculator page are this same solver, just weighted
     differently -- there's no single "correct" position policy, only different ways to choose
-    what to optimize for. "Set Your Own Policy" lets you weight those same four things yourself
-    and see what comes out.</p>
-
-    <h3>FAQ</h3>
-    <p><strong>Can I upload sheet music, a PDF, or a MuseScore file instead of typing ABC?</strong>
-    We don't accept file uploads here, since there's been no work done on copyright protection
-    for that. You can try converting your file to ABC notation. Tools that sometimes work easily
-    include <a href="https://musescore.org/" target="_blank" rel="noopener">MuseScore</a> (free,
-    can export a score straight to ABC notation) and
-    <a href="https://easyabc.sourceforge.net/" target="_blank" rel="noopener">EasyABC</a> (a
-    dedicated ABC editor that can also import MusicXML). Either way, once it's ABC text, paste it
-    in here.</p>
-
-    <p>The code for this app is freely available at
-    <a href="https://github.com/dwiddows/slideguide" target="_blank" rel="noopener">github.com/dwiddows/slideguide</a>.</p>
+    what to optimize for. <a href="index.html#set-your-own-policy">"Set Your Own Policy"</a> lets
+    you weight those same four things yourself and see what comes out.</p>
   </div>
-
-  <p class="credits">Designed and tested by Dominic Widdows. Coded by Claude.
-  Thanks for the encouragement to <a href="https://www.colinpulkrabek.com/" target="_blank"
-  rel="noopener">Colin Pulkrabek</a> -- ask him about lessons.<br>
-  Released under the MIT License. Melody parsing by
-  <a href="https://abcjs.net/" target="_blank" rel="noopener">abcjs</a> (also MIT).</p>
 </div>
 
+<script src="music-theory.js"></script>
+<script src="trombone-positions.js"></script>
+<script src="staff-view.js"></script>
+<script src="slide-theory.js"></script>
 </body>
 </html>

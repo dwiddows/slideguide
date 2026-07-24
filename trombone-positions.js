@@ -107,7 +107,7 @@
   // works unchanged for any of the 7 fundamentals above, since the
   // pattern of intervals above a fundamental is the same regardless of
   // which pitch that fundamental itself is.
-  var PARTIAL_LETTER_OFFSET = { 1: 0, 2: 7, 3: 11, 4: 14, 5: 16, 6: 18, 7: 20, 8: 21, 9: 23 };
+  var PARTIAL_LETTER_OFFSET = { 1: 0, 2: 7, 3: 11, 4: 14, 5: 16, 6: 18, 7: 20, 8: 21, 9: 22 };
 
   function naturalHarmonicSeries(maxPartial, position) {
     var fundamental = POSITION_FUNDAMENTALS[(position || 1) - 1];

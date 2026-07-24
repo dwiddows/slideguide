@@ -274,7 +274,14 @@
     summary.appendChild(htmlEl("span", { class: "panel-note" }, preset.note));
     details.appendChild(summary);
 
-    var body = htmlEl("div", { class: "panel-body" });
+    // An id only on the custom panel's body (not the details wrapper),
+    // so a fragment link to it triggers the browser's own reveal
+    // algorithm for a closed <details> ancestor -- linking straight to
+    // the details element itself would just scroll to its (always
+    // visible) summary without expanding the content.
+    var bodyAttrs = { class: "panel-body" };
+    if (preset.isCustom) bodyAttrs.id = "set-your-own-policy";
+    var body = htmlEl("div", bodyAttrs);
     if (preset.isCustom) body.appendChild(expertControls.element);
     var positionList = makePositionList(body);
     var tromboneSvg = el("svg", {

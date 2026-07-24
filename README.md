@@ -70,6 +70,25 @@ way, but browsable: the position/partial table, the note-to-positions
 table it inverts to, and how the solver's four weights combine into a
 total cost for a whole passage.
 
+## FAQ
+
+**Can I upload sheet music, a PDF, or a MuseScore file instead of typing ABC?**
+We don't accept file uploads, since there's been no work done on copyright
+protection for that. You can try converting your file to ABC notation first --
+[MuseScore](https://musescore.org/) (free, can export a score straight to ABC
+notation) and [EasyABC](https://easyabc.sourceforge.net/) (a dedicated ABC
+editor that can also import MusicXML) both sometimes work easily. Either way,
+once it's ABC text, paste it into the melody box.
+
+## Credits
+
+Designed and tested by Dominic Widdows. Coded by Claude. Thanks for the
+encouragement to [Colin Pulkrabek](https://www.colinpulkrabek.com/) -- ask
+him about lessons.
+
+Released under the [MIT License](LICENSE). Melody parsing by
+[abcjs](https://abcjs.net) (also MIT).
+
 ## References
 
 - Braden, A. (2006). [Bore Optimisation and Impedance Modelling of Brass

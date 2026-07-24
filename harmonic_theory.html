@@ -16,7 +16,7 @@
   <p>The harmonic theory used to explain trombone slide positions can be presented very simply.
   (The air-pressure mechanics is actually more complicated, see below!)
 
-  <p>A tube of a fixed length resonates with standing waves 
+  <p>A tube of a fixed length resonates with standing waves
     only if an exact number of wave oscillations matches the length of the tube.
     If there is just one wave oscillation, that is called the fundamental frequency.
     If there are exactly two waves, the frequency is doubled, and the note is an octave higher
@@ -25,8 +25,8 @@
     The partials in between give notes within these octaves.
   <p>
     The pitches formed in this way are called the <i>harmonic series</i> of the tube.
-    In 1st position, the notes formed are pedal B&flat;, then B&flat;, F, B&flat;, D, F, A&flat; 
-    (a well-known flat one, not quite in tune), then B&flat; again, three octaves above the fundamental. 
+    In 1st position, the notes formed are pedal B&flat;, then B&flat;, F, B&flat;, D, F, A&flat;
+    (a well-known flat one, not quite in tune), then B&flat; again, three octaves above the fundamental.
     You can see this series by clicking "Play" in the demo below.
   </p>
 
@@ -45,6 +45,11 @@
 
   <p class="pipe-label">A plain tube: each partial fits n loops between two ends.</p>
   <div class="pipe-wrap" id="pipe"></div>
+
+  <p class="pipe-label">A tube that flares into a bell: color shows pressure (red = compressed,
+  blue = rarefied), driven by the lips buzzing at the mouthpiece.</p>
+  <div class="pipe-wrap" id="pipe-bell"></div>
+
   <div class="playback-row">
     <button id="play-btn">&#9654; Play</button>
   </div>
@@ -56,60 +61,29 @@
   <div id="partial-numbers"></div>
 
   <p>Moving the slide out to a lower position lengthens the tube, and lowers the whole series
-  with it &mdash; try different positions above.</p>
-
-  <p>Every combination of a slide position and a partial number makes a note:
-    trying them all out gives a "trombone notes table" like this:</p>
-
-  <div class="build-table-row">
-    <button id="build-table-btn" class="small-btn">Build Table</button>
-  </div>
-  <div class="table-scroll">
-    <table class="how-it-works-table" id="notes-table"></table>
-  </div>
-
-  <p>Note that some notes appear several times once the table is filled out.
-    For example, C4 (middle C) appears at the 5th partial in 3rd position, 
-    and the 6th partial in 6th position.
-    It follows that the note C4 can be played on the trombone in either of these positions.
-  </p>
-
-  <p>
-    If we follow through this process for all the different notes,
-    we get a related table: for every note, a list of positions where that note
-    can be played on the trombone.
-    This note-to-positions table is shown and used in
-    <a href="slide_theory.html">slide position calculation</a>.
-  </p>
+  with it &mdash; try different positions above. Building every combination of position and
+  partial into a full set of notes is covered on
+  <a href="slide_theory.html">Slide Position Choices and Calculations</a>.</p>
 
   <hr class="section-divider">
 
   <h2>Detailed Version Using More Realistic Fluid Dynamics</h2>
 
-  <p>
-    A better illustration of an air pressure wave might look more like this!
-    The air moves back and forth through the tube, and standing waves occur when
-    regions oscillate between higher pressure (red) and lower pressure (blue).
-    This process is driven by the lips rapidly opening and closing at the mouthpiece.
-  </p>
-
-  <div class="pipe-wrap" id="pipe-bell"></div>
-
   <p>Key mathematical differences between a horn and the simplified wave theory we started with include the following:</p>
 
   <ul>
     <li>The air vibrates backwards and forwards, not up and down like on a guitar string.</li>
-    <li>A vibrating string is pinned at both ends: those points can't move at all. 
-      A tube isn't closed like that at either end. 
+    <li>A vibrating string is pinned at both ends: those points can't move at all.
+      A tube isn't closed like that at either end.
       <ul>
         <li>The bell is open, so the pressure here mixes with the outside air pressure.</li>
         <li>The pressure at the mouthpiece isn't fixed: pressure changes here are driven by the player's lips.</li>
       </ul>
     </li>
     <li>The lips can vibrate at <i>any</i> frequency.
-      (Horns reinforce some frequencies and resist others, which makes it <i>feel</i> 
+      (Horns reinforce some frequencies and resist others, which makes it <i>feel</i>
       like the lips can only make particular notes.)</li>
-    <li>The open end doesn't reflect waves perfectly: some parts escape and make the air around vibrate 
+    <li>The open end doesn't reflect waves perfectly: some parts escape and make the air around vibrate
       (otherwise we wouldn't hear anything!)</li>
   </ul>
 
@@ -135,11 +109,11 @@
     and the same methods could be used to model brass instruments.
   </p>
 
-  <p>The simulation below demonstrates these fluid dynamics results in action.
+  <p>The simulation above demonstrates these fluid dynamics results in action.
     The coding was done collaboratively with Claude Code, and the solutions the code found
-    are demonstrated below.
+    are demonstrated above.
 
-  <p>  
+  <p>
     Because reflection and bore shape both vary with frequency,
     a real tube's partials aren't spaced in the perfectly exact integer ratios an idealized string
     produces &mdash; they have to be measured or modelled one by one, which is what the impedance
@@ -148,13 +122,13 @@
     cross-section (the Webster horn equation), rather than the single simple wave equation that
     works for a string with fixed ends &mdash; a substantially harder mathematical problem.</p>
 
-  <p><strong>Experiment.</strong> 
-  The lips can buzz at any frequency at all, but the horn responds more 
+  <p><strong>Experiment.</strong>
+  The lips can buzz at any frequency at all, but the horn responds more
   strongly to some frequencies than others. Drag the
   slider to change lip frequency, and watch the bell
-  diagram respond. The horn's predicted impedance at each frequency is shown below: tall means the bore
+  diagram above respond. The horn's predicted impedance at each frequency is shown below: tall means the bore
   resists strongly there (a resonance &mdash; a real partial), short means it barely responds. The
-  partial numbers aren't spaced exactly evenly in the more detailed simulation &mdash; 
+  partial numbers aren't spaced exactly evenly in the more detailed simulation &mdash;
   the readout shows both the partial number and the expected distance.</p>
 
   <div class="freq-entry">

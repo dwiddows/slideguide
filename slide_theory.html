@@ -25,27 +25,26 @@
     <p>Position 1's fundamental is the horn's pedal B♭; each position down lowers that
     fundamental by a semitone, and each fundamental carries its own harmonic series (see
     <a href="harmonic_theory.html">The Harmonic Series</a> for how that series itself comes
-    from the tube's own physics, with an interactive version of the table below):</p>
-    <div class="table-scroll">
-      <table class="how-it-works-table">
-        <thead>
-          <tr><th>Position</th><th>Fundamental</th><th>2nd</th><th>3rd</th><th>4th</th><th>5th</th><th>6th</th><th>7th</th><th>8th</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>1</td><td>B♭1</td><td>B♭2</td><td>F3</td><td>B♭3</td><td>D4</td><td>F4</td><td>&mdash;</td><td>B♭4</td></tr>
-          <tr><td>2</td><td>A1</td><td>A2</td><td>E3</td><td>A3</td><td>C♯4</td><td>E4</td><td>G4*</td><td>A4</td></tr>
-          <tr><td>3</td><td>A♭1</td><td>A♭2</td><td>E♭3</td><td>A♭3</td><td>C4</td><td>E♭4</td><td>G♭4*</td><td>A♭4</td></tr>
-          <tr><td>4</td><td>G1</td><td>G2</td><td>D3</td><td>G3</td><td>B3</td><td>D4</td><td>F4*</td><td>G4</td></tr>
-          <tr><td>5</td><td>G♭1</td><td>G♭2</td><td>D♭3</td><td>G♭3</td><td>B♭3</td><td>D♭4</td><td>E4*</td><td>G♭4</td></tr>
-          <tr><td>6</td><td>F1</td><td>F2</td><td>C3</td><td>F3</td><td>A3</td><td>C4</td><td>E♭4*</td><td>F4</td></tr>
-          <tr><td>7</td><td>E1</td><td>E2</td><td>B2</td><td>E3</td><td>G♯3</td><td>B3</td><td>D4*</td><td>E4</td></tr>
-        </tbody>
-      </table>
+    from the tube's own physics). Build the table to see every combination:</p>
+
+    <div class="build-table-row">
+      <button id="build-table-btn" class="small-btn">Build Table</button>
     </div>
-    <p class="table-caption">* the 7th partial is always noticeably flat (about a third of a
-    semitone) -- the position shown already has the real correction players use (shortening the
-    slide slightly to sharpen it back up) baked in. Position 1 has no 7th partial listed at all
-    (&mdash;): the slide is all the way in so there is no sharpened 1st position.</p>
+
+    <div class="live-reminder-row" id="live-reminder">
+      <div class="pipe-wrap-small" id="pipe-small"></div>
+      <div class="staff-thumb-small" id="staff-thumb-small"></div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="how-it-works-table" id="notes-table"></table>
+    </div>
+    <p class="table-caption">Position 1 has no 7th partial: the slide is already all the way
+    in, so there's no room to sharpen it back in tune.</p>
+
+    <p>Some notes appear more than once once the table is filled out -- C4 (middle C), for
+    example, is the 5th partial in 3rd position and also the 6th partial in 6th position, so
+    it can be played either way.</p>
 
     <p>Inverting this table gives us, for every note, the list of positions that can play it --
     one row per note, ordered from the highest pitch down, with a thumbnail showing where each
@@ -116,6 +115,7 @@
 <script src="music-theory.js"></script>
 <script src="trombone-positions.js"></script>
 <script src="staff-view.js"></script>
+<script src="pipe.js"></script>
 <script src="slide-theory.js"></script>
 </body>
 </html>

@@ -140,6 +140,29 @@
     padding: 6px 14px;
     font-size: 0.85em;
   }
+  .live-reminder-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 4px 0 14px;
+  }
+  .pipe-wrap-small {
+    width: 320px;
+    max-width: 100%;
+  }
+  .staff-thumb-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Fixed regardless of which note is showing -- a pedal tone's
+       ledger lines make a much taller SVG than an in-staff note's, and
+       without a fixed frame that difference reflows the table below on
+       every note change. 128px covers this page's full range (E1 to
+       B♭4) at the live reminder's 1.8x scale, with a little headroom. */
+    height: 132px;
+  }
   .section-divider {
     width: 100%;
     max-width: 900px;

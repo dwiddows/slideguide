@@ -32,18 +32,32 @@
   // across it) -- a squiggly line drawn crosswise, however standard as
   // a teaching picture, is a graph laid over the tube, not a picture of
   // anything actually happening inside it. Painting the true interior
-  // with color -- warm for compression, cool for rarefaction, dark at a
-  // node -- reads as what's physically there instead, and it can never
-  // visually escape the walls, since it's bounded by them by construction.
-  var PRESSURE_NEUTRAL = [26, 22, 14];
-  var PRESSURE_HOT = [255, 59, 48];   // compression
-  var PRESSURE_COLD = [56, 189, 248]; // rarefaction
+  // reads as what's physically there instead, and it can never visually
+  // escape the walls, since it's bounded by them by construction.
+  //
+  // Grayscale density, not hue: a node sits at a stable mid-gray, since
+  // its pressure never actually deviates from ambient, and only
+  // antinodes swing toward white (compressed) or black (rarefied). Two
+  // things tried and dropped along the way: mapping |pressure| to
+  // opacity/brightness against the page background (made nodes fade
+  // toward "empty" instead of staying put -- wrong, ambient pressure
+  // there is constant); and a sqrt response curve for contrast (its
+  // infinite slope at v=0 made every zero-crossing snap rather than
+  // ease, reading as jerky) -- a plain linear GAIN does the same "more
+  // contrast" job smoothly. The canvas around the horn is also filled
+  // with this same neutral gray, so the wall is the only boundary, not
+  // a hard cutoff to black as if the room outside were a vacuum.
+  var GRAY_NEUTRAL = [130, 130, 130]; // ambient, at rest -- a node stays exactly here
+  var GRAY_WHITE = [235, 235, 235];   // compression -- short of pure white
+  var GRAY_BLACK = [20, 20, 20];      // rarefaction
+  var GRAY_NEUTRAL_CSS = "rgb(" + GRAY_NEUTRAL.join(",") + ")";
+  var GAIN = 1.7; // reach full saturation before the theoretical peak |v|=1
   function pressureColor(v) {
-    var t = Math.min(1, Math.abs(v));
-    var target = v >= 0 ? PRESSURE_HOT : PRESSURE_COLD;
-    var r = Math.round(PRESSURE_NEUTRAL[0] + (target[0] - PRESSURE_NEUTRAL[0]) * t);
-    var g = Math.round(PRESSURE_NEUTRAL[1] + (target[1] - PRESSURE_NEUTRAL[1]) * t);
-    var b = Math.round(PRESSURE_NEUTRAL[2] + (target[2] - PRESSURE_NEUTRAL[2]) * t);
+    var t = Math.min(1, Math.abs(v) * GAIN);
+    var target = v >= 0 ? GRAY_WHITE : GRAY_BLACK;
+    var r = Math.round(GRAY_NEUTRAL[0] + (target[0] - GRAY_NEUTRAL[0]) * t);
+    var g = Math.round(GRAY_NEUTRAL[1] + (target[1] - GRAY_NEUTRAL[1]) * t);
+    var b = Math.round(GRAY_NEUTRAL[2] + (target[2] - GRAY_NEUTRAL[2]) * t);
     return "rgb(" + r + "," + g + "," + b + ")";
   }
 
@@ -80,7 +94,9 @@
       bellRatio: opts.bellRatio || defaults.bellRatio
     });
     var modeK = HornEquation.findModes(profile.logAreaSlope, { maxModes: maxModes });
-    var POINTS = 140;
+    // 500, not 140: fine enough that the seams between adjacent bands
+    // don't show up as visible vertical lines.
+    var POINTS = 500;
     var shapes = modeK.map(function (k) {
       return normalize(HornEquation.modeShape(profile.logAreaSlope, k, { points: POINTS }));
     });
@@ -90,6 +106,8 @@
       preserveAspectRatio: "xMidYMid meet", class: "pipe-svg"
     });
     container.appendChild(svg);
+    // Backdrop, painted first so the bands/wall/lips below draw on top.
+    svg.appendChild(el("rect", { x: 0, y: 0, width: width, height: height, fill: GRAY_NEUTRAL_CSS }));
 
     var midY = height / 2;
     var left = margin;

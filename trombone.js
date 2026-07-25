@@ -445,9 +445,13 @@
     renderTune(notes, durations, MusicTheory.keySignature(tune.root, typeKey));
   }
 
+  // Activating on focus (not just change) matches the melody box below:
+  // clicking into the scale picker at all switches the staff to it
+  // immediately, even before a different option is actually chosen.
   rootSelect.addEventListener("change", render);
   typeSelect.addEventListener("change", render);
-  render();
+  rootSelect.addEventListener("focus", render);
+  typeSelect.addEventListener("focus", render);
 
   // ---- Loading a melody from typed-in ABC notation ---------------------------
   // Reuses the exact same renderTune pipeline as the root/type picker --
@@ -497,6 +501,9 @@
     clearTimeout(melodyInputTimer);
     melodyInputTimer = setTimeout(loadMelody, 400);
   });
+
+  // The melody box is the default view, not the scale picker.
+  loadMelody();
 
   // ---- Custom-weight sliders --------------------------------------------------
   // Dragging a slider only needs to re-solve and reposition the one

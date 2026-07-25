@@ -41,6 +41,11 @@
     padding: 0 16px;
     box-sizing: border-box;
   }
+  .stage h3 {
+    color: var(--brass-bright);
+    font-size: 1em;
+    margin: 18px 0 6px;
+  }
   svg text {
     font-family: Georgia, 'Times New Roman', serif;
   }
@@ -205,7 +210,7 @@
     overflow: hidden;
     height: 24px;
     position: relative;
-    margin-bottom: 0;
+    margin-bottom: 18px;
   }
   .position-list-svg {
     display: block;

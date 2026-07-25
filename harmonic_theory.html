@@ -13,22 +13,8 @@
 <div class="stage">
   <p><a href="index.html">&larr; Trombone Positions Calculator</a></p>
 
-  <p>The harmonic theory used to explain trombone slide positions can be presented very simply.
-  (The air-pressure mechanics is actually more complicated, see below!)
-
-  <p>A tube of a fixed length resonates with standing waves
-    only if an exact number of wave oscillations matches the length of the tube.
-    If there is just one wave oscillation, that is called the fundamental frequency.
-    If there are exactly two waves, the frequency is doubled, and the note is an octave higher
-    (this result is sometimes attributed to Pythagoras though it has been discovered all over the world).
-    Doubling the frequency again gives 4 waves, and the pitch is two octaves higher, and 8 waves is 3 octaves higher.
-    The partials in between give notes within these octaves.
-  <p>
-    The pitches formed in this way are called the <i>harmonic series</i> of the tube.
-    In 1st position, the notes formed are pedal B&flat;, then B&flat;, F, B&flat;, D, F, A&flat;
-    (a well-known flat one, not quite in tune), then B&flat; again, three octaves above the fundamental.
-    You can see this series by choosing a slide position and clicking "Play" in the demo below.
-  </p>
+  <p>A tube resonates with standing waves at specific frequencies &mdash; its
+  <i>harmonic series</i>. Choose a slide position and click "Play" to hear it.</p>
 
   <div class="position-entry">
     <label for="position-select">Slide position:</label>
@@ -47,7 +33,7 @@
   <div class="pipe-wrap" id="pipe"></div>
 
   <p class="pipe-label">A tube that flares into a bell: shade shows pressure (brighter = compressed,
-  darker = rarefied; a node stays a stable gray), driven by the lips buzzing at the mouthpiece.</p>
+  darker = rarefied), driven by the lips buzzing at the mouthpiece.</p>
   <div class="pipe-wrap" id="pipe-bell"></div>
 
   <div class="playback-row">
@@ -57,7 +43,6 @@
   <div class="staff-scroll" id="staff-scroll">
     <svg id="staff-svg"></svg>
   </div>
-  <p class="pipe-label">Partial number</p>
   <div id="partial-numbers"></div>
 
   <p class="pipe-label">Lips can buzz at any frequency &mdash; drag to explore. A tall bar means
@@ -71,15 +56,27 @@
     <svg id="impedance-svg" class="impedance-svg"></svg>
   </div>
 
+  <h3>Fixed Tube Explanation</h3>
+
+  <p>A tube of a fixed length resonates with standing waves
+    only if an exact number of wave oscillations matches the length of the tube.
+    If there is just one wave oscillation, that is called the fundamental frequency.
+    If there are exactly two waves, the frequency is doubled, and the note is an octave higher
+    (this result is sometimes attributed to Pythagoras though it has been discovered all over the world).
+    Doubling the frequency again gives 4 waves, and the pitch is two octaves higher, and 8 waves is 3 octaves higher.
+    The partials in between give notes within these octaves.</p>
+
+  <p>In 1st position, the notes formed are pedal B&flat;, then B&flat;, F, B&flat;, D, F, A&flat;
+    (a well-known flat one, not quite in tune), then B&flat; again, three octaves above the fundamental.</p>
+
   <p>Moving the slide out to a lower position lengthens the tube, and lowers the whole series
   with it. Building every combination of position and partial into a full set of notes is
   covered on <a href="slide_theory.html">Slide Position Choices and Calculations</a>.</p>
 
-  <hr class="section-divider">
+  <h3>Flared Horn Explanation</h3>
 
-  <h2>Detailed Version Using More Realistic Fluid Dynamics</h2>
-
-  <p>Key mathematical differences between the simplified tube theory we started with and a real horn include the following:</p>
+  <p>This simplified picture treats the air like a vibrating string. A real horn's air-pressure
+  mechanics work a little differently:</p>
 
   <ul>
     <li>The air vibrates backwards and forwards, not up and down like on a guitar string.</li>
@@ -111,7 +108,7 @@
 
   <p>The horn equation for a tube of continuously changing cross-section was formalized by
     Webster in 1919 (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC1091593/" target="_blank"
-    rel="noopener">Acoustical Impedance and the Theory of Horns and of the Phonograph</a>. During the 1920s and 30s horn designers wrestled with these equations
+    rel="noopener">Acoustical Impedance and the Theory of Horns and of the Phonograph</a>). During the 1920s and 30s horn designers wrestled with these equations
     for gramophones and telephones (see this
     <a href="http://acousticsresearchcentre.no/a-brief-history-of-electroacoustics-pt-8-horns-early-development-en/"
     target="_blank" rel="noopener">brief history of horn acoustics</a>),

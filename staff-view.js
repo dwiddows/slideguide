@@ -52,6 +52,11 @@
   function makeNumberRow(container, opts) {
     var format = (opts && opts.format) || String;
     var wrapClass = (opts && opts.wrapClass) || "position-list";
+    // Optional text drawn at the row's own left edge (x=0), inside the
+    // same SVG the numbers live in -- not a flex sibling next to it,
+    // which would shift every number's x away from the noteX it's
+    // meant to line up under.
+    var leadingLabel = opts && opts.leadingLabel;
     var wrap = htmlEl("div", { class: wrapClass });
     var svg = el("svg", { class: "position-list-svg", height: "20" });
     wrap.appendChild(svg);
@@ -65,6 +70,13 @@
       var width = lastX + 40;
       svg.setAttribute("width", width);
       svg.setAttribute("viewBox", "0 0 " + width + " 20");
+
+      if (leadingLabel) {
+        var label = el("text", { x: 0, y: 15, class: "position-list-number" });
+        label.textContent = leadingLabel;
+        svg.appendChild(label);
+      }
+
       // A null value (a rest, on the trombone page -- nothing else
       // uses this yet) just leaves a gap in the row, same as the staff.
       textEls = values.map(function (v, i) {
@@ -105,6 +117,7 @@
     var noteX = opts.noteX;       // pixel x for each note, already spaced by duration
     var notes = opts.notes;       // [{ note, step }, ...]
     var noteR = opts.noteR || stepH * 0.64;
+    var labelFontSize = opts.labelFontSize || stepH * 1.18;
 
     function stepToY(step) {
       return bottomY - step * stepH;
@@ -242,7 +255,7 @@
       noteEls.push(head);
 
       var label = el("text", {
-        x: x, y: y + stepH * 3.1, "text-anchor": "middle", "font-size": stepH * 1.18, class: "staff-label"
+        x: x, y: y + stepH * 3.1, "text-anchor": "middle", "font-size": labelFontSize, class: "staff-label"
       });
       label.textContent = n.note;
       svg.appendChild(label);

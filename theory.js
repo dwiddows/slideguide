@@ -184,13 +184,19 @@
     staffHandle = makeStaff(staffSvg, {
       left: left, right: staffWidth - rightMargin, bottomY: bottomY, stepH: stepH,
       keyFlats: 0, keyFlatBStep: 2, keySharps: 0, keySharpFStep: 6,
-      noteX: noteX, notes: staffNotes
+      noteX: noteX, notes: staffNotes,
+      // Bigger than the default stepH*1.18 -- the note names are the
+      // actual payload of this diagram (the shrunk staff itself is
+      // just scaffolding), so they stay legible at this page's smaller
+      // overall scale.
+      labelFontSize: stepH * 1.6
     });
 
     numberRowContainer.innerHTML = "";
     numberRow = makeNumberRow(numberRowContainer, {
       format: function (partial) { return partial; },
-      wrapClass: "number-row"
+      wrapClass: "number-row",
+      leadingLabel: "Partial"
     });
     numberRow.setNumbers(series.map(function (h) { return h.partial; }), noteX);
 

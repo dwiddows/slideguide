@@ -126,7 +126,7 @@
     max-width: 900px;
     margin: 0 0 4px;
     font-size: 0.9em;
-    color: var(--brass-dim);
+    color: var(--brass);
   }
   .pipe-svg {
     display: block;

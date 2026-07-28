@@ -101,7 +101,7 @@ Then in 2026 I spent a few evenings coding this up using Claude Code, which I co
 Cost Estimate
 * Total time: about 8 hours.
 * Cost to me: much less than $20 (one month's Claude Code subscription).
-* Estimated cost to Claude in real terms: $3-$6.
+* Estimated cost to Claude in real terms: $3-$6 (with considerable error bars!)
 
 How do I know the AI generated code works? 
 * It produces the modes, scales, and positions I've wanted for years, with tests to prove it.
@@ -114,7 +114,7 @@ Couldn't you have done this without AI?
 
 Shouldn't developers be paid properly for work like this?
 * As far as I know, this is the first automatic trombone slide position calculator in the history of computing.
-* This project could have been done for decades - but it wasn't, and if it required paying developers, it still wouldn't be.
+* This project could have been done for decades - but it wasn't, and if it required paying developers, it still wouldn't be!
 
 AI tools can help to support niche applications that only small groups (such as trombonists!) are interested in.
 Members of those communities often have a very good idea of what they want to see in applications.

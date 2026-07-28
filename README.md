@@ -110,7 +110,7 @@ How do I know the AI generated code works?
 Couldn't you have done this without AI?
 * Given web search resources, yes, the basic version with no real fluid dynamics, in about a month.
 * It would probably have taken me another month to take on the more ambitious fluid dynamics solutions.
-** That's with a PhD in differential geometry and 25 years coding experience. And no guarantee of success.
+  * That's with a PhD in differential geometry and 25 years coding experience. And no guarantee of success.
 
 Shouldn't developers be paid properly for work like this?
 * As far as I know, this is the first automatic trombone slide position calculator in the history of computing.

@@ -89,6 +89,38 @@ notation) and [EasyABC](https://easyabc.sourceforge.net/) (a dedicated ABC
 editor that can also import MusicXML) both sometimes work easily. Either way,
 once it's ABC text, paste it into the melody box.
 
+## Author's Note on AI Usage
+
+I first imagined something like this application in the early 2000's, and never got round to building it in Java.
+
+Then around 2024 my trombone teacher Colin wondered if there was an good computer algorithm to find shortest position paths.
+(Answer - yes, there are several depending on what we reckon is ideal.)
+
+Then in 2026 I spent a few evenings coding this up using Claude Code, which I couldn't have done in previous years.
+
+Cost Estimate
+* Total time: about 8 hours.
+* Cost to me: much less than $20 (one month's Claude Code subscription).
+* Estimated cost to Claude in real terms: $3-$6.
+
+How do I know the AI generated code works? 
+* It produces the modes, scales, and positions I've wanted for years, with tests to prove it.
+* If you find any mistaken trombone position pathways here and want to discuss them, I'd love to :)
+
+Couldn't you have done this without AI?
+* Given web search resources, yes, the basic version with no real fluid dynamics, in about a month.
+* It would probably have taken me another month to take on the more ambitious fluid dynamics solutions.
+** That's with a PhD in differential geometry and 25 years coding experience. And no guarantee of success.
+
+Shouldn't developers be paid properly for work like this?
+* As far as I know, this is the first automatic trombone slide position calculator in the history of computing.
+* This project could have been done for decades - but it wasn't, and if it required paying developers, it still wouldn't be.
+
+AI tools can help to support niche applications that only small groups (such as trombonists!) are interested in.
+Members of those communities often have a very good idea of what they want to see in applications.
+Sometimes AI assistance helps community members meet those requirements responsibly, correctly, and cost-effectively.
+For anyone to claim "there are no legitimate used of AI", I would ask them to explain why this project doesn't count.
+
 ## Credits
 
 Designed and tested by Dominic Widdows. Coded by Claude. Thanks for the

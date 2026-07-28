@@ -89,7 +89,7 @@ notation) and [EasyABC](https://easyabc.sourceforge.net/) (a dedicated ABC
 editor that can also import MusicXML) both sometimes work easily. Either way,
 once it's ABC text, paste it into the melody box.
 
-## Author's Note on AI Usage
+## Author's Notes on AI Usage
 
 I first imagined something like this application in the early 2000's, and never got round to building it in Java.
 
@@ -106,6 +106,7 @@ Cost Estimate
 How do I know the AI generated code works? 
 * It produces the modes, scales, and positions I've wanted for years, with tests to prove it.
 * If you find any mistaken trombone position pathways here and want to discuss them, I'd love to :)
+  * Ideally - use the Issues tab to file an issue and we'll get improvements included in the code.
 
 Couldn't you have done this without AI?
 * Given web search resources, yes, the basic version with no real fluid dynamics, in about a month.

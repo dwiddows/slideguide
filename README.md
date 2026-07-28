@@ -120,7 +120,7 @@ Shouldn't developers be paid properly for work like this?
 AI tools can help to support niche applications that only small groups (such as trombonists!) are interested in.
 Members of those communities often have a very good idea of what they want to see in applications.
 Sometimes AI assistance helps community members meet those requirements responsibly, correctly, and cost-effectively.
-For anyone to claim "there are no legitimate used of AI", I would ask them to explain why this project doesn't count.
+(Thanks for reading this!)
 
 ## Credits
 

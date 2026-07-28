@@ -1,7 +1,16 @@
 SlideGuide calculates ideal slide positions for trombone lines.
 
+![SlideGuide: a typed-in melody on the staff, with three slide-position policies compared below it](images/slideguide-desktop.png)
+
 There's an online interactive version at https://dwiddows.github.io/slideguide/
-(also embedded at https://www.puttypeg.net/music/slideguide/index.html).
+(also embedded at https://www.puttypeg.net/music/slideguide/index.html) &mdash; it
+works on mobile too:
+
+<img src="images/slideguide-mobile.png" alt="SlideGuide on a phone-sized screen, same melody and controls, laid out in a single column" width="300">
+
+The companion `harmonic_theory.html` page explains the physics behind the position model:
+
+![The 8th partial: a plain tube shows 8 clean standing-wave loops, while the same partial in a flared bell shows pressure fading out toward the open end instead of staying evenly rippled](images/harmonic-series.png)
 
 Feel free to use any of the code in this repo for other projects,
 e.g., the music theory parts that generates the scales could easily be used in tools for other instruments.
@@ -91,7 +100,19 @@ Released under the [MIT License](LICENSE). Melody parsing by
 
 ## References
 
+- Benade, A. H. (1973). [Trumpet Acoustics](https://ccrma.stanford.edu/marl/Benade/documents/Benade-Trumpet-1973.pdf).
+  Case Western Reserve University &mdash; the original source for the
+  `D = B/(y+y0)^a` Bessel-horn formula `pipe-bell.js` uses, with the
+  history of where that family's math (and its name) came from.
 - Braden, A. (2006). [Bore Optimisation and Impedance Modelling of Brass
   Musical Instruments](https://www.acoustics.ed.ac.uk/wp-content/uploads/Theses/Braden_Alistair__PhDThesis_UniversityOfEdinburgh_2006.pdf)
-  (PhD thesis, University of Edinburgh) -- real brass bells fit to the
+  (PhD thesis, University of Edinburgh) &mdash; real brass bells fit to the
   same Bessel-horn family `pipe-bell.js` uses schematically.
+- Webster, A. G. (1919). [Acoustical Impedance and the Theory of Horns and
+  of the Phonograph](https://pmc.ncbi.nlm.nih.gov/articles/PMC1091593/).
+  *Proceedings of the National Academy of Sciences*, 5(7), 275&ndash;282
+  &mdash; the horn equation `horn-equation.js` solves.
+- Kolbrek, B. (2008). [Horn Theory: An Introduction, Part
+  1](https://www.grc.com/acoustics/an-introduction-to-horn-theory.pdf).
+  *audioXpress* &mdash; a clear walkthrough of the same plane-wave assumption
+  and cutoff-frequency behavior `horn-equation.js` implements.

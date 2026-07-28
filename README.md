@@ -101,7 +101,6 @@ Then in 2026 I spent a few evenings coding this up using Claude Code, which I co
 Cost Estimate
 * Total time: about 8 hours.
 * Cost to me: much less than $20 (one month's Claude Code subscription).
-* Estimated cost to Claude in real terms: $3-$6 (with considerable error bars!)
 
 How do I know the AI generated code works? 
 * It produces the modes, scales, and positions I've wanted for years, with tests to prove it.

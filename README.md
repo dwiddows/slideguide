@@ -133,7 +133,7 @@ Released under the [MIT License](LICENSE). Melody parsing by
 ## References
 
 - Benade, A. H. (1973). [Trumpet Acoustics](https://ccrma.stanford.edu/marl/Benade/documents/Benade-Trumpet-1973.pdf).
-  Case Western Reserve University &mdash; the original source for the
+  Case Western Reserve University &mdash; the source for the
   $$D = B/(y+y_0)^a$$ Bessel-horn formula `pipe-bell.js` uses, with the
   history of where that family's math (and its name) came from.
 - Braden, A. (2006). [Bore Optimisation and Impedance Modelling of Brass

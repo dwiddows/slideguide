@@ -134,17 +134,17 @@ Released under the [MIT License](LICENSE). Melody parsing by
 
 - Benade, A. H. (1973). [Trumpet Acoustics](https://ccrma.stanford.edu/marl/Benade/documents/Benade-Trumpet-1973.pdf).
   Case Western Reserve University &mdash; the original source for the
-  `D = B/(y+y0)^a` Bessel-horn formula `pipe-bell.js` uses, with the
+  $$D = B/(y+y_0)^a$$ Bessel-horn formula `pipe-bell.js` uses, with the
   history of where that family's math (and its name) came from.
 - Braden, A. (2006). [Bore Optimisation and Impedance Modelling of Brass
   Musical Instruments](https://www.acoustics.ed.ac.uk/wp-content/uploads/Theses/Braden_Alistair__PhDThesis_UniversityOfEdinburgh_2006.pdf)
   (PhD thesis, University of Edinburgh) &mdash; real brass bells fit to the
   same Bessel-horn family `pipe-bell.js` uses schematically.
-- Webster, A. G. (1919). [Acoustical Impedance and the Theory of Horns and
-  of the Phonograph](https://pmc.ncbi.nlm.nih.gov/articles/PMC1091593/).
-  *Proceedings of the National Academy of Sciences*, 5(7), 275&ndash;282
-  &mdash; the horn equation `horn-equation.js` solves.
 - Kolbrek, B. (2008). [Horn Theory: An Introduction, Part
   1](https://www.grc.com/acoustics/an-introduction-to-horn-theory.pdf).
   *audioXpress* &mdash; a clear walkthrough of the same plane-wave assumption
   and cutoff-frequency behavior `horn-equation.js` implements.
+- Webster, A. G. (1919). [Acoustical Impedance and the Theory of Horns and
+  of the Phonograph](https://pmc.ncbi.nlm.nih.gov/articles/PMC1091593/).
+  *Proceedings of the National Academy of Sciences*, 5(7), 275&ndash;282
+  &mdash; the horn equation `horn-equation.js` solves.  
